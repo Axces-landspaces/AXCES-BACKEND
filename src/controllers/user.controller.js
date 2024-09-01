@@ -2,7 +2,7 @@ import User from "../models/user.model.js";
 import Coins from "../models/coins.model.js";
 import jwt from "jsonwebtoken";
 import { errorHandler } from "../utils/error.js";
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 dotenv.config();
 
@@ -52,7 +52,13 @@ export const createProfile = async (req, res, next) => {
 
       return res.status(201).json({
         status: "success",
-        data: { id: user._id, name: user.name, email: user.email, balance, token },
+        data: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          balance,
+          token,
+        },
         message: "User registered successfully",
       });
     }
@@ -62,7 +68,6 @@ export const createProfile = async (req, res, next) => {
   }
 };
 
-
 export const verifyNumber = async (req, res, next) => {
   try {
     const { number } = req.body;
@@ -70,7 +75,7 @@ export const verifyNumber = async (req, res, next) => {
 
     let user = await User.findOne({ number });
 
-    if(!number) {
+    if (!number) {
       return next(errorHandler(400, res, "Number is required"));
     }
 
@@ -91,7 +96,6 @@ export const verifyNumber = async (req, res, next) => {
     next(error);
   }
 };
-
 
 export const updateUserProfile = async (req, res, next) => {
   const { name, email } = req.body;
@@ -137,49 +141,62 @@ export const getUserProfile = async (req, res, next) => {
 
 
 
-
 export const sendOtp = async (req, res, next) => {
+  const apiKey = process.env.TWOFACTOR_API_KEY; // Replace with your actual API key
+
+  var requestOptions = {
+    method: "GET",
+    redirect: "follow",
+  };
+
   try {
-    const { phoneNumber } = req.body;
+    const data = await fetch(
+      "https://2factor.in/API/V1/02ad8ea8-54de-11ef-8b60-0200cd936042/SMS/+919115680702/AUTOGEN2/OTP1",
+      requestOptions
+    );
 
-    if (!phoneNumber || !/^\d{10}$/.test(phoneNumber)) {
-      return next(errorHandler(400, res, "Invalid phone number."));
-    }
+    // Use the .json() method to parse the response
+    const responseJson = await data.json();
 
-    // Simulate sending OTP
-    console.log(`Sending OTP to phone number ${phoneNumber}`);
+    console.log(responseJson);
 
-    return res.status(200).json({
-      status: "success",
-      message: "OTP sent successfully",
-    });
+    // Send the parsed JSON as a response
+    res.status(200).json(responseJson);
   } catch (error) {
-    console.error("Error sending OTP:", error);
-    next(error);
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Failed to send OTP' });
   }
 };
 
 
 
+
 export const verifyOtp = async (req, res, next) => {
+  const apiKey = process.env.TWOFACTOR_API_KEY; // Replace with your actual API key
+
+  const { otp, sessionId } = req.body;
+
+  var requestOptions = {
+    method: "GET",
+    redirect: "follow",
+  };
+
   try {
-    const { otp } = req.body;
+    const data = await fetch(
+      `https://2factor.in/API/V1/02ad8ea8-54de-11ef-8b60-0200cd936042/SMS/VERIFY/${sessionId}/${otp}`,
+      requestOptions
+    );
 
-    if (!otp || !/^\d{6}$/.test(otp)) {
-      return next(errorHandler(400, res, "Invalid OTP"));
-    }
+    // Use the .json() method to parse the response
+    const responseJson = await data.json();
 
-    if (otp === 123456) {
-      return res.status(200).json({
-        status: "success",
-        message: "Number verified successfully",
-      });
-    } else {
-      return next(errorHandler(400, res, "Invalid OTP."));
-    }
+    console.log(responseJson);
+
+    // Send the parsed JSON as a response
+    res.status(200).json(responseJson);
   } catch (error) {
-    console.error("Error verifying OTP:", error);
-    next(error);
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Failed to send OTP' });
   }
 };
 
@@ -187,7 +204,11 @@ export const verifyOtp = async (req, res, next) => {
 
 export const profileUpload = async (req, res, next) => {
   try {
-    if (!req.files || !req.files.profilePicture || req.files.profilePicture.length === 0) {
+    if (
+      !req.files ||
+      !req.files.profilePicture ||
+      req.files.profilePicture.length === 0
+    ) {
       return next(errorHandler(400, res, "Profile picture upload is required"));
     }
 
@@ -223,5 +244,3 @@ export const profileUpload = async (req, res, next) => {
     next(errorHandler(500, res, "An error occurred during the upload process"));
   }
 };
-
-
