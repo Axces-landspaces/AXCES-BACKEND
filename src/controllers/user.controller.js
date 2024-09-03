@@ -139,11 +139,10 @@ export const getUserProfile = async (req, res, next) => {
   }
 };
 
-
-
 export const sendOtp = async (req, res, next) => {
   const apiKey = process.env.TWOFACTOR_API_KEY; // Replace with your actual API key
-
+  const phoneNumber = req.body.phoneNumber;
+  
   var requestOptions = {
     method: "GET",
     redirect: "follow",
@@ -151,7 +150,7 @@ export const sendOtp = async (req, res, next) => {
 
   try {
     const data = await fetch(
-      "https://2factor.in/API/V1/02ad8ea8-54de-11ef-8b60-0200cd936042/SMS/+919115680702/AUTOGEN2/OTP1",
+      `https://2factor.in/API/V1/${apiKey}/SMS/${phoneNumber}/AUTOGEN2/OTP1`,
       requestOptions
     );
 
@@ -163,13 +162,10 @@ export const sendOtp = async (req, res, next) => {
     // Send the parsed JSON as a response
     res.status(200).json(responseJson);
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Failed to send OTP' });
+    console.error("Error:", error);
+    res.status(500).json({ error: "Failed to send OTP" });
   }
 };
-
-
-
 
 export const verifyOtp = async (req, res, next) => {
   const apiKey = process.env.TWOFACTOR_API_KEY; // Replace with your actual API key
@@ -183,7 +179,7 @@ export const verifyOtp = async (req, res, next) => {
 
   try {
     const data = await fetch(
-      `https://2factor.in/API/V1/02ad8ea8-54de-11ef-8b60-0200cd936042/SMS/VERIFY/${sessionId}/${otp}`,
+      `https://2factor.in/API/V1/${apiKey}/SMS/VERIFY/${sessionId}/${otp}`,
       requestOptions
     );
 
@@ -195,12 +191,10 @@ export const verifyOtp = async (req, res, next) => {
     // Send the parsed JSON as a response
     res.status(200).json(responseJson);
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Failed to send OTP' });
+    console.error("Error:", error);
+    res.status(500).json({ error: "Failed to send OTP" });
   }
 };
-
-
 
 export const profileUpload = async (req, res, next) => {
   try {
