@@ -15,7 +15,7 @@ const app = express();
 
 // CORS configuration
 const corsOptions = {
-  origin: ['https://axces.in', 'http://localhost:5000'],
+  origin: ['https://axces.in', 'http://localhost:5000', 'https://free-nextjs-admin-dashboard-main-three.vercel.app'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
