@@ -203,6 +203,12 @@ export const listProperties = async (req, res, next) => {
 
     // Apply filters for exact match query
     if (filters) {
+      if (filters.owner_name) {
+        exactQuery.owner_name = {
+          $regex: `\\b${filters.owner_name}\\b`,
+          $options: "i",
+        };
+      }
       if (filters.listing_type) {
         exactQuery.listing_type = {
           $regex: `\\b${filters.listing_type}\\b`,
