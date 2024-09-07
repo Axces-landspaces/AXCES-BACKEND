@@ -31,7 +31,7 @@ router.post(
 
 router.put("/property/edit", authenticateToken, editProperty);
 router.delete("/property/delete", authenticateToken, deleteProperty);
-router.post("/property/list", listProperties);
+router.post("/property/list", authenticateToken, listProperties);
 
 router.get(
   "/property/contact-owner/:propertyId",

@@ -189,18 +189,22 @@ import { getDistance } from "geolib";
 
 export const listProperties = async (req, res, next) => {
   const { userLatitude, userLongitude, filters } = req.body;
-
-  if (!userLatitude || !userLongitude) {
-    return res.status(400).json({
-      code: 400,
-      data: {},
-      message: "User latitude and longitude are required",
-    });
-  }
+  const userId = req.user.id;
 
   try {
-    const exactQuery = {};
+    // Fetch user's wishlist
+    const userWishlist = await User.findById(userId).populate("wishlist");
+    const wishlistPropertyIds = userWishlist?.wishlist.map((item) => item._id.toString()) || [];
 
+    if (!userLatitude || !userLongitude) {
+      return res.status(400).json({
+        code: 400,
+        data: {},
+        message: "User latitude and longitude are required",
+      });
+    }
+
+    const exactQuery = {};
     // Apply filters for exact match query
     if (filters) {
       if (filters.owner_name) {
@@ -343,12 +347,15 @@ export const listProperties = async (req, res, next) => {
           );
           property.distance = distance / 1000; // distance in kilometers
         }
+
+        // Check if the property is in the user's wishlist
+        property.isInWishlist = wishlistPropertyIds.includes(property._id.toString());
+
         return property;
       });
     };
 
-    const exactPropertiesWithDistance =
-      addDistanceToProperties(exactProperties);
+    const exactPropertiesWithDistance = addDistanceToProperties(exactProperties);
 
     exactPropertiesWithDistance.sort(
       (a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity)
@@ -364,6 +371,7 @@ export const listProperties = async (req, res, next) => {
     next(error);
   }
 };
+
 
 export const contactOwner = async (req, res, next) => {
   const { propertyId } = req.params;
