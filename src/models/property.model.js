@@ -13,8 +13,16 @@ const PropertySchema = new mongoose.Schema(
     owner_phone: {
       type: Number,
     },
+    owner_id: {
+      type: Number
+    },
     property_type: {
       type: String,
+      required: true,
+    },
+    purpose: {
+      type: String,
+      enum: ["Residential", "Commercial"],
       required: true,
     },
     title: {
