@@ -10,6 +10,7 @@ export const postProperty = async (req, res, next) => {
   const {
     listing_type,
     property_type,
+    property_subtype,
     title,
     description,
     address,
@@ -30,7 +31,7 @@ export const postProperty = async (req, res, next) => {
     localities,
     landmark,
     facilities,
-  } = req.body;
+  } = req?.body;
 
   let location = JSON.parse(req.body.location);
 
@@ -53,6 +54,69 @@ export const postProperty = async (req, res, next) => {
       return next(errorHandler(400, res, "Image upload is required"));
     }
 
+    if (!property_type) {
+      return next(errorHandler(400, res, "Property type is required"));
+    }
+
+    // making things mandatory for residential properties\
+    // cuz i remove most of it from schema as required
+    if (property_type === "residential") {
+      if (
+        !bedrooms ||
+        !bathrooms ||
+        !furnish_type ||
+        !preferred_tenant ||
+        !facilities
+      ) {
+        return next(
+          errorHandler(
+            400,
+            res,
+            "For residential properties, bedrooms, bathrooms,furnish type, facilities and preferred tenant are mandatory fields"
+          )
+        );
+      }
+    }
+
+    if (!property_subtype) {
+      return next(errorHandler(400, res, "Property subtype is required"));
+    }
+
+    if (property_type === "residential") {
+      if (
+        property_subtype === "office" ||
+        property_subtype === "shop" ||
+        property_subtype === "plot" ||
+        property_subtype === "others"
+      ) {
+        return next(
+          errorHandler(
+            400,
+            res,
+            "commercial subtype is not allowed in residential"
+          )
+        );
+      }
+    }
+
+    if (property_type === "commercial") {
+      if (
+        property_subtype === "apartment" ||
+        property_subtype === "independent house" ||
+        property_subtype === "independent floor" ||
+        property_subtype === "pg" ||
+        property_subtype === "villa"
+      ) {
+        return next(
+          errorHandler(
+            400,
+            res,
+            "residential subtype is not allowed in commercial"
+          )
+        );
+      }
+    }
+
     const imageLocalPath = req.files.images[0].path;
     console.log(req.files);
     const imageResponse = await uploadOnCloudinary(imageLocalPath);
@@ -67,6 +131,7 @@ export const postProperty = async (req, res, next) => {
       owner_name,
       owner_phone,
       property_type,
+      property_subtype,
       title,
       description,
       address,
@@ -116,7 +181,6 @@ export const postProperty = async (req, res, next) => {
     next(error);
   }
 };
-
 
 export const editProperty = async (req, res, next) => {
   const { propertyId, updatedPropertyDetails } = req.body;
@@ -189,12 +253,13 @@ import { getDistance } from "geolib";
 
 export const listProperties = async (req, res, next) => {
   const { userLatitude, userLongitude, filters } = req.body;
-  const userId = req.user.id;
+  const userId = req.user.id; 
 
   try {
     // Fetch user's wishlist
     const userWishlist = await User.findById(userId).populate("wishlist");
-    const wishlistPropertyIds = userWishlist?.wishlist.map((item) => item._id.toString()) || [];
+    const wishlistPropertyIds =
+      userWishlist?.wishlist.map((item) => item._id.toString()) || [];
 
     if (!userLatitude || !userLongitude) {
       return res.status(400).json({
@@ -246,7 +311,7 @@ export const listProperties = async (req, res, next) => {
           $options: "i",
         };
       }
-      
+
       if (filters.building_name) {
         exactQuery.building_name = {
           $regex: `\\b${filters.building_name}\\b`,
@@ -286,9 +351,23 @@ export const listProperties = async (req, res, next) => {
       if (filters.available_from) {
         exactQuery.available_from = filters.available_from;
       }
-      if (filters.monthly_rent) {
-        exactQuery.monthly_rent = filters.monthly_rent;
+
+
+      // if (filters.monthly_rent) {
+      //   exactQuery.monthly_rent = filters.monthly_rent;
+      // }
+
+      // monthly rent filter - range based
+      if (filters.monthly_rent && Array.isArray(filters.monthly_rent)) {
+        if (filters.monthly_rent[0] && filters.monthly_rent[1]) {
+          exactQuery.monthly_rent = {
+            $gte: filters.monthly_rent[0],  // Minimum value
+            $lte: filters.monthly_rent[1]   // Maximum value
+          };
+        }
       }
+
+
       if (filters.security_deposit) {
         exactQuery.security_deposit = filters.security_deposit;
       }
@@ -349,13 +428,16 @@ export const listProperties = async (req, res, next) => {
         }
 
         // Check if the property is in the user's wishlist
-        property.isInWishlist = wishlistPropertyIds.includes(property._id.toString());
+        property.isInWishlist = wishlistPropertyIds.includes(
+          property._id.toString()
+        );
 
         return property;
       });
     };
 
-    const exactPropertiesWithDistance = addDistanceToProperties(exactProperties);
+    const exactPropertiesWithDistance =
+      addDistanceToProperties(exactProperties);
 
     exactPropertiesWithDistance.sort(
       (a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity)
@@ -371,7 +453,6 @@ export const listProperties = async (req, res, next) => {
     next(error);
   }
 };
-
 
 export const contactOwner = async (req, res, next) => {
   const { propertyId } = req.params;
@@ -390,7 +471,8 @@ export const contactOwner = async (req, res, next) => {
 
     // Fetch the default cost for contacting owner and user's coin balance
     const defaultCoinConfig = await Coins.findOne({});
-    const defaultOwnerDetailsBalance = defaultCoinConfig.defaultOwnerDetailsCost;
+    const defaultOwnerDetailsBalance =
+      defaultCoinConfig.defaultOwnerDetailsCost;
 
     const userCoins = await Coins.findOne({ userId });
     if (!userCoins || userCoins.balance < defaultOwnerDetailsBalance) {
@@ -423,7 +505,6 @@ export const contactOwner = async (req, res, next) => {
     next(error);
   }
 };
-
 
 export const addToWishlist = async (req, res, next) => {
   const { propertyId, action } = req.body;
