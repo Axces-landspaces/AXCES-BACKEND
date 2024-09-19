@@ -32,7 +32,6 @@ router.post(
 router.put("/property/edit", authenticateToken, editProperty);
 router.delete("/property/delete", authenticateToken, deleteProperty);
 router.post("/property/list", authenticateToken, listProperties);
-// router.post("/property/list", listProperties);
 
 
 router.get(

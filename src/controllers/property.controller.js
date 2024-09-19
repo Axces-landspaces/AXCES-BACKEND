@@ -253,8 +253,33 @@ export const getPropertyDetails = async (req, res, next) => {
 import { getDistance } from "geolib";
 
 export const listProperties = async (req, res, next) => {
-  const { userLatitude, userLongitude, filters } = req.body;
+  const { userLatitude, userLongitude, owner_id, filters } = req.body;
   const userId = req.user.id; 
+
+  // this is the requested code for owner's properties
+  if (owner_id) {
+    console.log(owner_id);
+    try {
+      const ownerProperties = await Property.find({ owner_id });
+      console.log(ownerProperties);
+      if (!ownerProperties.length) {
+        return res.status(404).json({
+          code: 404,
+          data: {},
+          message: "No properties found for the given owner",
+        });
+      }
+
+      return res.status(200).json({
+        code: 200,
+        data: ownerProperties,
+        message: "Owner's properties fetched successfully",
+      });
+    } catch (error) {
+      console.error("Error fetching owner's properties:", error);
+      return next(error);
+    }
+  }
 
   try {
     // Fetch user's wishlist
