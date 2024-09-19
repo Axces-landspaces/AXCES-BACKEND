@@ -11,6 +11,7 @@ export const postProperty = async (req, res, next) => {
     listing_type,
     property_type,
     property_subtype,
+    purpose,
     title,
     description,
     address,
@@ -132,6 +133,7 @@ export const postProperty = async (req, res, next) => {
       owner_phone,
       property_type,
       property_subtype,
+      purpose,
       title,
       description,
       address,
@@ -272,9 +274,9 @@ export const listProperties = async (req, res, next) => {
     const exactQuery = {};
     // Apply filters for exact match query
     if (filters) {
-      if (filters.owner_name) {
-        exactQuery.owner_name = {
-          $regex: `\\b${filters.owner_name}\\b`,
+      if (filters.userId) {
+        exactQuery.userId = {
+          $regex: `\\b${filters.userId}\\b`,
           $options: "i",
         };
       }
@@ -287,6 +289,12 @@ export const listProperties = async (req, res, next) => {
       if (filters.property_type) {
         exactQuery.property_type = {
           $regex: `\\b${filters.property_type}\\b`,
+          $options: "i",
+        };
+      }
+      if (filters.purpose) {
+        exactQuery.purpose = {
+          $regex: `\\b${filters.purpose}\\b`,
           $options: "i",
         };
       }
@@ -390,10 +398,7 @@ export const listProperties = async (req, res, next) => {
         };
       }
       if (filters.facilities && Array.isArray(filters.facilities)) {
-        exactQuery.facilities = {
-          $regex: `\\b${filters.facilities}\\b`,
-          $options: "i",
-        };
+        exactQuery.facilities = { $all: filters.facilities };
       }
     }
 
