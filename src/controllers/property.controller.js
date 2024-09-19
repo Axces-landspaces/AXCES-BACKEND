@@ -11,6 +11,7 @@ export const postProperty = async (req, res, next) => {
     listing_type,
     property_type,
     property_subtype,
+    purpose,
     title,
     description,
     address,

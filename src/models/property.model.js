@@ -20,7 +20,6 @@ const PropertySchema = new mongoose.Schema(
       // ref: "User",
       required: true,
     },
-
     // TODO: add types and subtypes - done 
     property_type: {
       type: String,
