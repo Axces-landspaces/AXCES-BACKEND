@@ -13,8 +13,12 @@ const PropertySchema = new mongoose.Schema(
     owner_phone: {
       type: Number,
     },
+    // this is required as we have to get all the properties that a user has
     owner_id: {
-      type: Number
+      // type: mongoose.Schema.Types.ObjectId,
+      type: String,
+      // ref: "User",
+      required: true,
     },
     // TODO: add types and subtypes - done 
     property_type: {
@@ -35,11 +39,6 @@ const PropertySchema = new mongoose.Schema(
         "independent floor",
         "pg",
       ],
-      required: true,
-    },
-    purpose: {
-      type: String,
-      enum: ["Residential", "Commercial"],
       required: true,
     },
     title: {
