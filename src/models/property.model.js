@@ -14,6 +14,9 @@ const PropertySchema = new mongoose.Schema(
       type: Number,
     },
     // TODO: add types and subtypes - done 
+    owner_id: {
+      type: Number
+    },
     property_type: {
       type: String,
       enum: ["residential", "commercial"],
@@ -32,6 +35,11 @@ const PropertySchema = new mongoose.Schema(
         "independent floor",
         "pg",
       ],
+      required: true,
+    },
+    purpose: {
+      type: String,
+      enum: ["Residential", "Commercial"],
       required: true,
     },
     title: {
