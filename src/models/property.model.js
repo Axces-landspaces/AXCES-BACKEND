@@ -16,8 +16,25 @@ const PropertySchema = new mongoose.Schema(
     owner_id: {
       type: Number
     },
+    // TODO: add types and subtypes - done 
     property_type: {
       type: String,
+      enum: ["residential", "commercial"],
+      required: true,
+    },
+    property_subtype: {
+      type: String,
+      enum: [
+        "office",
+        "shop",
+        "plot",
+        "others",
+        "apartment",
+        "independent house",
+        "villa",
+        "independent floor",
+        "pg",
+      ],
       required: true,
     },
     purpose: {
@@ -57,11 +74,9 @@ const PropertySchema = new mongoose.Schema(
     },
     bedrooms: {
       type: Number,
-      required: true,
     },
     bathrooms: {
       type: Number,
-      required: true,
     },
     area_sqft: {
       type: Number,
@@ -85,7 +100,6 @@ const PropertySchema = new mongoose.Schema(
     },
     furnish_type: {
       type: String,
-      required: true,
     },
     available_from: {
       type: Date,
@@ -101,7 +115,6 @@ const PropertySchema = new mongoose.Schema(
     },
     preferred_tenant: {
       type: String,
-      required: true,
     },
     localities: [
       {
@@ -116,7 +129,6 @@ const PropertySchema = new mongoose.Schema(
     facilities: [
       {
         type: String,
-        required: true,
       },
     ],
     images: [
@@ -127,8 +139,6 @@ const PropertySchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
-
 
 const Property = mongoose.model("Property", PropertySchema);
 export default Property;
