@@ -53,6 +53,11 @@ const PropertySchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    property_posted_by: {
+      type: String,
+      enum: ["owner", "agent"],
+      required: true,
+    },
     pincode: {
       type: String,
       required: true,

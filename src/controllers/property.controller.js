@@ -15,6 +15,7 @@ export const postProperty = async (req, res, next) => {
     title,
     description,
     address,
+    property_posted_by,
     pincode,
     building_name,
     bedrooms,
@@ -136,6 +137,7 @@ export const postProperty = async (req, res, next) => {
       owner_id,
       property_type,
       property_subtype,
+      property_posted_by,
       purpose,
       title,
       description,
@@ -311,6 +313,12 @@ export const listProperties = async (req, res, next) => {
       if (filters.listing_type) {
         exactQuery.listing_type = {
           $regex: `\\b${filters.listing_type}\\b`,
+          $options: "i",
+        };
+      }
+      if (filters.property_posted_by) {
+        exactQuery.property_posted_by = {
+          $regex: `\\b${filters.property_posted_by}\\b`,
           $options: "i",
         };
       }
