@@ -123,6 +123,8 @@ export const postProperty = async (req, res, next) => {
     const imageResponse = await uploadOnCloudinary(imageLocalPath);
 
     const owner_model = await User.findById(id);
+    const owner_id = id;
+    console.log(owner_id);
     const owner_name = owner_model.name;
     const owner_phone = owner_model.number;
 
@@ -131,6 +133,7 @@ export const postProperty = async (req, res, next) => {
       listing_type,
       owner_name,
       owner_phone,
+      owner_id,
       property_type,
       property_subtype,
       purpose,
