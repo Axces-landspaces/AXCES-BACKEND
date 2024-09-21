@@ -1,5 +1,6 @@
 import User from "../models/user.model.js";
 import Coins from "../models/coins.model.js";
+import Property from "../models/property.model.js";
 import jwt from "jsonwebtoken";
 import { errorHandler } from "../utils/error.js";
 import dotenv from "dotenv";
@@ -127,12 +128,17 @@ export const getUserProfile = async (req, res, next) => {
     if (!user) {
       return next(errorHandler(404, res, "User not found"));
     }
+    // get the property count of the user
+    const propertyCount = await Property.countDocuments({ owner_id: user._id });
+    console.log(propertyCount);
 
     res.status(200).json({
       code: 200,
       data: user,
+      owner_properties_count: propertyCount,
       message: "Success",
     });
+
   } catch (error) {
     console.error("Error fetching user profile:", error);
     next(error);
@@ -142,7 +148,7 @@ export const getUserProfile = async (req, res, next) => {
 export const sendOtp = async (req, res, next) => {
   const apiKey = process.env.TWOFACTOR_API_KEY; // Replace with your actual API key
   const phoneNumber = req.body.phoneNumber;
-  
+
   var requestOptions = {
     method: "GET",
     redirect: "follow",
