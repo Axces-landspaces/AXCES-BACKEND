@@ -1,6 +1,7 @@
 // coins.model.js
 import mongoose from "mongoose";
 
+// this gonna have one to one relationship with user
 const CoinsSchema = new mongoose.Schema({
   userId: {
     type: String,
@@ -25,12 +26,22 @@ const CoinsSchema = new mongoose.Schema({
         type: Number,
         required: true,
       },
+      type: {
+        type: String,
+        enum: ["credit", "debit"],
+        required: true,
+      },
+      description: {
+        type: String,
+        enum: ["property_post", "owner_details", "bank_transfer"],
+        required: true,
+      },
       timestamp: {
         type: Date,
         default: Date.now,
       },
     },
-  ]
+  ],
 });
 
 const Coins = mongoose.model("Coins", CoinsSchema);

@@ -176,6 +176,14 @@ export const postProperty = async (req, res, next) => {
     await property.save();
 
     userCoins.balance -= defaultPropertyPostCost;
+    // this is the transaction history
+    userCoins.transactions.push({
+      amount: defaultPropertyPostCost,
+      description: "property_post",
+      timestamp: new Date(),
+      type: "debit",
+    });
+
     await userCoins.save();
 
     res.status(201).json({
@@ -260,7 +268,7 @@ import { getDistance } from "geolib";
 
 export const listProperties = async (req, res, next) => {
   const { userLatitude, userLongitude, owner_id, filters } = req.body;
-  const userId = req.user.id; 
+  const userId = req.user.id;
 
   // this is the requested code for owner's properties
   if (owner_id) {
@@ -396,7 +404,6 @@ export const listProperties = async (req, res, next) => {
         exactQuery.available_from = filters.available_from;
       }
 
-
       // if (filters.monthly_rent) {
       //   exactQuery.monthly_rent = filters.monthly_rent;
       // }
@@ -405,12 +412,11 @@ export const listProperties = async (req, res, next) => {
       if (filters.monthly_rent && Array.isArray(filters.monthly_rent)) {
         if (filters.monthly_rent[0] && filters.monthly_rent[1]) {
           exactQuery.monthly_rent = {
-            $gte: filters.monthly_rent[0],  // Minimum value
-            $lte: filters.monthly_rent[1]   // Maximum value
+            $gte: filters.monthly_rent[0], // Minimum value
+            $lte: filters.monthly_rent[1], // Maximum value
           };
         }
       }
-
 
       if (filters.security_deposit) {
         exactQuery.security_deposit = filters.security_deposit;
@@ -514,7 +520,7 @@ export const contactOwner = async (req, res, next) => {
     const defaultCoinConfig = await Coins.findOne({});
     const defaultOwnerDetailsBalance =
       defaultCoinConfig.defaultOwnerDetailsCost;
-
+    
     const userCoins = await Coins.findOne({ userId });
     if (!userCoins || userCoins.balance < defaultOwnerDetailsBalance) {
       return next(
@@ -525,11 +531,16 @@ export const contactOwner = async (req, res, next) => {
         )
       );
     }
+ 
+    userCoins.transactions.push({
+      amount: defaultOwnerDetailsBalance,
+      description: "post_property",
+      timestamp: new Date(),
+      type: "debit",
+    });
 
-    // Deduct coins
     userCoins.balance -= defaultOwnerDetailsBalance;
     await userCoins.save();
-
     // Respond with owner's contact details
     res.status(200).json({
       code: 200,

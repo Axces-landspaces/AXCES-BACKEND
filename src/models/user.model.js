@@ -1,35 +1,36 @@
-  import mongoose from "mongoose";
+import { model, Schema } from "mongoose";
 
-  const UserSchema = new mongoose.Schema(
-    {
-      number: {
-        type: Number,
-        required: true,
-        unique: true,
-      },
-      name: {
-        type: String,
-      },
-      email: {
-        type: String,
-        unique: true,
-      },
-      balance: {
-        type: Number
-      },
-      profilePicture: {
-        type: String
-      },
-
-      wishlist: [
-        {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "Property",
-        },
-      ],
+const UserSchema = new Schema(
+  {
+    number: {
+      type: Number,
+      required: true,
+      unique: true,
     },
-    { timestamps: true }
-  );
+    name: {
+      type: String,
+    },
+    email: {
+      type: String,
+      unique: true,
+    },
+    balance: {
+      type: Number,
+      default: 0,
+    },
+    profilePicture: {
+      type: String,
+    },
 
-  const User = mongoose.model("User", UserSchema);
-  export default User;
+    wishlist: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Property",
+      },
+    ],
+  },
+  { timestamps: true }
+);
+
+const User = model("User", UserSchema);
+export default User;
