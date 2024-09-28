@@ -186,7 +186,7 @@ export const verifyOtp = async (req, res, next) => {
   if (
     (sessionId === "15448d90-7d7f-11ef-8b57-02004d936044" &&
       otp === "123456") ||
-    otp === 123456
+    (otp === 123456 && sessionId === "15448d90-7d7f-11ef-8b57-02004d936044")
   ) {
     return res.status(200).json({
       Status: "Success",
