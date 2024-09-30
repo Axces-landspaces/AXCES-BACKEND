@@ -35,7 +35,7 @@ export const signinAdmin = async (req, res) => {
     const token = jwt.sign(
       { id: admin._id, username: admin.username, email: admin.email },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" } // Set token expiration time as needed
+      { expiresIn: "12h" } // Set token expiration time as needed
     );
 
     // Send token back in the response
@@ -297,47 +297,114 @@ export const adminDashboard = async (req, res, next) => {
       },
     ]);
 
-    const propertyPercentageBreakdown = await Property.aggregate([
+    const totalPropertiesByTypes = await Property.aggregate([
       {
         $group: {
-          _id: "$purpose",
+          _id: { $toLower: "$property_type" }, // Convert property_type to lowercase
           count: { $sum: 1 },
         },
       },
       {
         $project: {
           _id: 0,
-          purpose: "$_id",
+          property_type: "$_id",
+          count: 1,
           percentage: {
             $multiply: [{ $divide: ["$count", totalProperties] }, 100],
           },
         },
       },
     ]);
-    const totalPropertiesByPurpose = await Property.aggregate([
+
+    // Daily Aggregation
+    const dailyAggregation = await Coins.aggregate([
+      { $unwind: "$transactions" },
       {
         $group: {
-          _id: "$purpose",
-          count: { $sum: 1 },
+          _id: {
+            $dateToString: {
+              format: "%Y-%m-%d",
+              date: "$transactions.timestamp",
+            },
+          },
+          total_amount: { $sum: "$transactions.amount" },
+          total_transactions: { $sum: 1 },
         },
       },
+      { $sort: { _id: 1 } },
       {
         $project: {
           _id: 0,
-          purpose: "$_id",
-          count: 1,
+          date: "$_id",
+          total_amount: 1,
+          total_transactions: 1,
         },
       },
+      { $limit: 30 }, // Limit to the last 30 days
+    ]);
+
+    // Weekly Aggregation
+    const weeklyAggregation = await Coins.aggregate([
+      { $unwind: "$transactions" },
+      {
+        $group: {
+          _id: {
+            $dateToString: {
+              format: "%Y-%U",
+              date: "$transactions.timestamp",
+              timezone: "UTC",
+            },
+          },
+          total_amount: { $sum: "$transactions.amount" },
+          total_transactions: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+      {
+        $project: {
+          _id: 0,
+          week: "$_id",
+          total_amount: 1,
+          total_transactions: 1,
+        },
+      },
+      { $limit: 7 }, // Limit to the last 7 weeks
+    ]);
+
+    // Monthly Aggregation
+    const monthlyAggregation = await Coins.aggregate([
+      { $unwind: "$transactions" },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: "%Y-%m", date: "$transactions.timestamp" },
+          },
+          total_amount: { $sum: "$transactions.amount" },
+          total_transactions: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+      {
+        $project: {
+          _id: 0,
+          month: "$_id",
+          total_amount: 1,
+          total_transactions: 1,
+        },
+      },
+      { $limit: 12 }, // Limit to the last 12 months
     ]);
 
     res.status(200).json({
-      code: 200,
       data: {
         totalUsers,
         totalProperties,
         totalTransactions,
-        propertyPercentageBreakdown,
-        totalPropertiesByPurpose,
+        totalPropertiesByTypes,
+
+        dailyAggregation,
+        weeklyAggregation,
+        monthlyAggregation,
       },
       message: "Dashboard data fetched successfully.",
     });
