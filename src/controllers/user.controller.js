@@ -23,7 +23,7 @@ export const createProfile = async (req, res, next) => {
         message: "User found successfully",
       });
     } else {
-      const { number, name, email } = req.body;
+      const { number, name, email, device_token } = req.body;
       if (!number || !name || !email) {
         return next(
           errorHandler(400, res, "Please provide all the required fields")
@@ -42,7 +42,7 @@ export const createProfile = async (req, res, next) => {
       const balance = defaultBalanceDoc ? defaultBalanceDoc.balance : 200;
 
       // User does not exist, create a new profile
-      user = new User({ number, name, email, balance });
+      user = new User({ number, name, email, balance, device_token });
       await user.save();
 
       const coins = new Coins({ userId: user._id, balance });
@@ -58,6 +58,7 @@ export const createProfile = async (req, res, next) => {
           email: user.email,
           balance,
           token,
+          device_token,
         },
         message: "User registered successfully",
       });

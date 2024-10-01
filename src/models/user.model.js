@@ -21,6 +21,9 @@ const UserSchema = new Schema(
     profilePicture: {
       type: String,
     },
+    device_token: {
+      type: String,
+    },
 
     wishlist: [
       {

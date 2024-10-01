@@ -1,5 +1,4 @@
 import express from 'express';
-import bodyParser from 'body-parser';
 import cors from 'cors';
 import connectDB from './config/db.js';
 import userRoutes from './routes/user.route.js';
@@ -24,7 +23,7 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-app.use(bodyParser.json());
+app.use(express.json());
 
 connectDB();
 
