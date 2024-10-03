@@ -5,8 +5,11 @@ WORKDIR /app
 # this will copy the entire project to the /app dir
 # but use layering concept
 # thats what two dot represent
-COPY . .   
+COPY package* .
 RUN npm install
+
+COPY . .   
+
 EXPOSE 5000
 # all of the above will run when create the image
 

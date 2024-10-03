@@ -1,6 +1,7 @@
 // coins.model.js
 import mongoose from "mongoose";
 
+
 // this gonna have one to one relationship with user
 const CoinsSchema = new mongoose.Schema({
   userId: {

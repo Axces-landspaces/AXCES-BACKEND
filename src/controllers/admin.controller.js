@@ -77,8 +77,8 @@ const updateUserSchema = z.object({
   userId: z.string().min(1),
   name: z.string().min(1).optional(),
   email: z.string().email().optional(),
-  number: z.string().min(1).optional(),
-  amount: z.number().min(1).optional(),
+  number: z.string().optional(),
+  balance: z.number().optional(),
 });
 
 // Update User
@@ -87,8 +87,7 @@ export const updateUser = async (req, res) => {
   if (!success) {
     return res.status(400).json({ message: "Invalid input" });
   }
-  const { userId, name, email, number, amount } = data;
-  const balance = amount;
+  const { userId, name, email, number, balance } = data;
   console.log(userId, name, email, number, balance);
 
   try {

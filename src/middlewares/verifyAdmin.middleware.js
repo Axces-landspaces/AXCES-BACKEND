@@ -17,9 +17,9 @@ export const verifyAdminToken = async (req, res, next) => {
   try {
     // Verify and decode the token
     const decoded = jwt.verify(token, JWT_SECRET);
-    console.log(decoded);
-    console.log(decoded);
-    console.log(decoded);
+    // console.log(decoded);
+    // console.log(decoded);
+    // console.log(decoded);
     
 
     // Fetch the admin details from the database
