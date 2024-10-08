@@ -16,7 +16,8 @@ export const createProfile = async (req, res, next) => {
     if (user) {
       // User exists, return user details with token
       const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
-
+      // TODO: question regarding the device_token, does that going to update on every logins/or as user signin using
+      // ! differnt mobile as it contain the information regarding the device
       return res.status(200).json({
         status: "success",
         data: { id: user._id, name: user.name, email: user.email, token },
@@ -36,13 +37,16 @@ export const createProfile = async (req, res, next) => {
         return next(errorHandler(400, res, "Email already exists"));
       }
 
+      // ! Cant digest it - pawan singh
+      // ! below three line of code
+
       // Get the default coin balance
       const defaultBalanceDoc = await Coins.findOne({});
       // console.log(defaultBalanceDoc);
       const balance = defaultBalanceDoc ? defaultBalanceDoc.balance : 200;
 
       // User does not exist, create a new profile
-      user = new User({ number, name, email, balance, device_token });
+      user = new User({ number, name, email, device_token });
       await user.save();
 
       const coins = new Coins({ userId: user._id, balance });

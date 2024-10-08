@@ -2,25 +2,16 @@ import mongoose from "mongoose";
 
 const PropertySchema = new mongoose.Schema(
   {
+    owner_id: {
+      type: String,
+      ref: "User",
+      required: true,
+    },
     listing_type: {
       type: String,
       enum: ["buy", "rent"],
       required: true,
     },
-    owner_name: {
-      type: String,
-    },
-    owner_phone: {
-      type: Number,
-    },
-    // this is required as we have to get all the properties that a user has
-    owner_id: {
-      // type: mongoose.Schema.Types.ObjectId,
-      type: String,
-      // ref: "User",
-      required: true,
-    },
-    // TODO: add types and subtypes - done 
     property_type: {
       type: String,
       enum: ["residential", "commercial"],
@@ -104,6 +95,8 @@ const PropertySchema = new mongoose.Schema(
     },
     furnish_type: {
       type: String,
+      // TODO: have to do one more value
+      enum: ["fully-furnished", "semi-furnished", "non-furnished"],
     },
     available_from: {
       type: Date,
@@ -119,6 +112,7 @@ const PropertySchema = new mongoose.Schema(
     },
     preferred_tenant: {
       type: String,
+      enum: ["any", "family", "bachelor"],
     },
     localities: [
       {

@@ -23,7 +23,8 @@ router.post(
       name: "profilePicture",
       maxCount: 1,
     },
-  ]), authenticateToken,
+  ]),
+  authenticateToken,
   profileUpload
 );
 router.post("/send-otp", sendOtp);

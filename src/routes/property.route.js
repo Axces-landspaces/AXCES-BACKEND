@@ -26,6 +26,7 @@ router.post(
       maxCount: 5,
     },
   ]),
+  authenticateToken,
   postProperty
 );
 

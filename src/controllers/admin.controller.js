@@ -47,28 +47,54 @@ export const signinAdmin = async (req, res) => {
   }
 };
 
-// Get All Users
+// Get All Users working
 export const getAllUsers = async (req, res) => {
   try {
     const users = await User.find();
-    res.json(users);
+    const usersWithBalances = await Promise.all(
+      users.map(async (user) => {
+        const userBalance = await Coins.findOne({ userId: user._id });
+        return {
+          ...user.toObject(),
+          balance: userBalance ? userBalance.balance : 0,
+        };
+      })
+    );
+    res.json(usersWithBalances);
   } catch (error) {
-    res.status(500).json({ message: "Something went wrong" });
+    console.error("Error in getAllUsers:", error);
+    res
+      .status(500)
+      .json({ message: "Something went wrong", error: error.message });
   }
 };
 
-// Get User Details
+// Get User Details -- /admin/user/:userId - working
 export const getUserDetails = async (req, res) => {
   const { userId } = req.params;
+  console.log(userId);
 
   try {
     const user = await User.findById(userId);
+    console.log(user);
+
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-    res.json(user);
+
+    const userBalance = await Coins.findOne({ userId: userId });
+    console.log({ userBalance });
+
+    res.json({
+      user: {
+        ...user.toObject(),
+        balance: userBalance ? userBalance.balance : 0, // Include balance in the user object
+      },
+    });
   } catch (error) {
-    res.status(500).json({ message: "Something went wrong" });
+    res
+      .status(500)
+      .json({ message: "Something went wrong", error: error.message });
   }
 };
 
@@ -81,7 +107,7 @@ const updateUserSchema = z.object({
   balance: z.number().optional(),
 });
 
-// Update User
+// Update User ----- Working
 export const updateUser = async (req, res) => {
   const { success, data } = updateUserSchema.safeParse(req.body);
   if (!success) {
@@ -91,14 +117,26 @@ export const updateUser = async (req, res) => {
   console.log(userId, name, email, number, balance);
 
   try {
+    // Update user details
     const updatedUser = await User.findByIdAndUpdate(
       userId,
-      { $set: { name, email, number, balance } },
+      { $set: { name, email, number } },
       { new: true, runValidators: true }
     );
     if (!updatedUser) {
       return res.status(404).json({ message: "User not found" });
     }
+
+    // If balance is provided, update it in the Coins table
+    if (balance !== undefined) {
+      let coins = await Coins.findOne({ userId });
+      if (!coins) {
+        coins = new Coins({ userId, balance: 0 }); // Initialize with balance 0 or any default value
+      }
+      coins.balance = balance;
+      await coins.save();
+    }
+
     res.json({ message: "User updated successfully", updatedUser });
   } catch (error) {
     res
@@ -108,12 +146,30 @@ export const updateUser = async (req, res) => {
 };
 
 // View All Properties
-export const viewAllProperties = async (req, res, next) => {
+
+// TODO: also add the respective owner_name, owner_phone, owner_email, owner_profilepictures
+export const viewAllPropertiesdemo = async (req, res, next) => {
   try {
     const properties = await Property.find();
+
+    // Fetch owner details for each property
+    const propertiesWithUserDetails = await Promise.all(
+      properties.map(async (property) => {
+        const ownerDetails = await User.findOne(
+          { _id: property.owner_id },
+          "name email"
+        ); // Fetch only name and email from User
+
+        return {
+          ...property._doc, // Spread the property details
+          owner: ownerDetails, // Attach the owner's details
+        };
+      })
+    );
+
     res.status(200).json({
       code: 200,
-      data: properties,
+      data: propertiesWithUserDetails,
       message: "All properties fetched successfully",
     });
   } catch (error) {
@@ -122,19 +178,70 @@ export const viewAllProperties = async (req, res, next) => {
   }
 };
 
-// View Property Details
+export const viewAllProperties = async (req, res, next) => {
+  try {
+    // Fetch properties
+    const properties = await Property.find();
+    // Manually fetch user details for each property
+    const propertiesWithUserDetails = await Promise.all(
+      properties.map(async (property) => {
+        // Sanitize owner_id to remove any newlines or extra spaces
+        const sanitizedOwnerId = property?.owner_id?.trim();
+
+        // Fetch user details based on the sanitized owner_id
+        const ownerDetails = await User.findOne(
+          { _id: sanitizedOwnerId },
+          "name email"
+        );
+
+        return {
+          ...property._doc, // Spread the property details
+          owner_name: ownerDetails?.name, // Attach the owner's details
+          owner_phone: ownerDetails?.number,
+          owner_email: ownerDetails?.email,
+          owner_profilepictures: ownerDetails?.profilePicture,
+        };
+      })
+    );
+
+    res.status(200).json({
+      code: 200,
+      data: propertiesWithUserDetails,
+      message: "Properties fetched successfully",
+    });
+  } catch (error) {
+    console.error("Error fetching properties:", error);
+    next(error);
+  }
+};
+
+// View Property Details --- working
 export const viewPropertyDetails = async (req, res, next) => {
   const { propertyId } = req.params;
 
   try {
     const property = await Property.findById(propertyId);
+
+    if (!property) {
+      return next(errorHandler(404, res, "Property not found"));
+    }
+
+    const owner = await User.findById(property.owner_id);
+
+    const propertyWithOwnerDetails = {
+      ...property.toObject(),
+      owner_name: owner.name,
+      owner_phone: owner.number,
+      owner_email: owner.email,
+      owner_profilepictures: owner.profilePicture,
+    };
     if (!property) {
       return next(errorHandler(404, res, "Property not found"));
     }
 
     res.status(200).json({
       code: 200,
-      data: property,
+      data: propertyWithOwnerDetails,
       message: "Property details fetched successfully",
     });
   } catch (error) {

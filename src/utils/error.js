@@ -1,4 +1,4 @@
-export const errorHandler = (statusCode, res , message) => {
+export const errorHandler = (statusCode, res, message) => {
   const error = new Error();
   error.statusCode = statusCode;
   error.message = message;
