@@ -5,14 +5,8 @@ import Logs from "../models/logs.model.js";
 import crypto from "crypto";
 import Razorpay from "razorpay";
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
-
 // Get user's coin balance
 export const getBalance = async (req, res, next) => {
-  console.log(razorpayInstance);
   try {
     const userId = req.user.id; // Assuming user ID is retrieved from authentication middleware
     console.log(userId);
@@ -40,6 +34,11 @@ export const getBalance = async (req, res, next) => {
 
 // Recharge user's coins
 export const rechargeCoins = async (req, res, next) => {
+  const razorpay = new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET,
+  });
+
   const userId = req.user.id; // Assuming user ID is retrieved from authentication middleware
   const { amount, currency } = req.body;
   // get the orderId from the razorpay
@@ -90,6 +89,10 @@ export const rechargeCoins = async (req, res, next) => {
 };
 
 export const validateRazorpay = async (req, res, next) => {
+  const razorpay = new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET,
+  });
   try {
     // get the userId from the req.user.id
     const userId = req.user.id; // Assuming user ID is retrieved from authentication middleware
