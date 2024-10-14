@@ -1,0 +1,50 @@
+{
+  "entity": "event",
+  "account_id": "acc_P5EeBcZF20qn0Y",
+  "event": "payment.captured",
+  "contains": ["payment"],
+  "payload": {
+    "payment": {
+      "entity": {
+        "id": "pay_P83i8KOdfgd2M4",
+        "entity": "payment",
+        "amount": 100000,
+        "currency": "INR",
+        "status": "captured",
+        "order_id": "order_P83hvHUxcyeL21",
+        "invoice_id": null,
+        "international": false,
+        "method": "netbanking",
+        "amount_refunded": 0,
+        "refund_status": null,
+        "captured": true,
+        "description": "Test Transaction",
+        "card_id": null,
+        "bank": "IBKL",
+        "wallet": null,
+        "vpa": null,
+        "email": "pawansingh@example.com",
+        "contact": "+918699080312",
+        "notes": {
+          "name": "kpasdasderrr",
+          "email": "asdfsdfasda@gmail.com",
+          "userId": "6704c91807e5baabfa906228"
+        },
+        "fee": 2360,
+        "tax": 360,
+        "error_code": null,
+        "error_description": null,
+        "error_source": null,
+        "error_step": null,
+        "error_reason": null,
+        "acquirer_data": {
+          "bank_transaction_id": "7627077"
+        },
+        "created_at": 1728721356,
+        "reward": null,
+        "base_amount": 100000
+      }
+    }
+  },
+  "created_at": 1728721360
+}

@@ -1,9 +1,9 @@
-import Transactions from "../models/transaction.model.js";
 import Coins from "../models/coins.model.js";
 import User from "../models/user.model.js";
 import Logs from "../models/logs.model.js";
 import crypto from "crypto";
 import Razorpay from "razorpay";
+import mongoose from "mongoose";
 
 // Get user's coin balance
 export const getBalance = async (req, res, next) => {
@@ -33,6 +33,7 @@ export const getBalance = async (req, res, next) => {
 };
 
 // Recharge user's coins
+// this is perfect no problem in this
 export const rechargeCoins = async (req, res, next) => {
   const razorpay = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID,
@@ -63,7 +64,7 @@ export const rechargeCoins = async (req, res, next) => {
         email: user.email,
       },
       partial_payment: false,
-      payment_capture: 1,
+      payment_capture: 1, // this is mandatory
     };
 
     const order = await razorpay.orders.create(options);
@@ -95,7 +96,7 @@ export const validateRazorpay = async (req, res, next) => {
   });
   try {
     // get the userId from the req.user.id
-    const userId = req.user.id; // Assuming user ID is retrieved from authentication middleware
+    // const userId = req.user.id; // Assuming user ID is retrieved from authentication middleware
     console.log(req.body);
     const { razorpay_payment_id, razorpay_order_id, razorpay_signature } =
       req.body;
@@ -116,57 +117,16 @@ export const validateRazorpay = async (req, res, next) => {
     const payment = await razorpay.payments.fetch(razorpay_payment_id);
     console.log({ payment });
 
-    // store the transaction in the database
-    const transaction = await Transactions.create({
-      userId,
-      razorpay_order_id,
-      razorpay_payment_id,
-      razorpay_signature,
-      status: "success",
-      processedAt: new Date(),
-    });
-    console.log({ transaction });
-
-    // fetch the detail from the razorpay
-
-    const coinsToCredit = calculateCoins(payment.amount / 100);
-    console.log({ coinsToCredit });
-
-    if (payment.status === "captured") {
-      // Payment successful and captured
-      // Fulfill the order
-      const coins = await Coins.findOneAndUpdate(
-        { userId: transaction.userId },
-        {
-          $inc: { balance: coinsToCredit },
-          $push: {
-            transactions: {
-              amount: coinsToCredit,
-              type: "credit",
-              description: "coin_recharge",
-              timestamp: new Date(),
-            },
-          },
-        },
-        { new: true }
-      );
-      console.log({ coins });
-    } else if (payment.status === "authorized") {
-      // Payment authorized but not captured
-      // Capture the payment if needed
-      await razorpay.payments.capture(
-        razorpay_payment_id,
-        payment.amount,
-        payment.currency
-      );
-    } else if ("failed") {
-      // Payment failed --handle the failure
-      await handlePaymentFailure(razorpay_order_id);
+    if (payment.status === "failed") {
+      return res.status(402).json({
+        success: false,
+        msg: "Payment Failed",
+      });
     }
 
     return res.status(200).json({
       success: true,
-      msg: "Payment successful",
+      msg: "Payment Successful",
     });
   } catch (error) {
     console.error("Error validating payment:", error);
@@ -178,10 +138,13 @@ export const validateRazorpay = async (req, res, next) => {
 };
 
 export const razorpayWebhook = async (req, res) => {
-  console.log(req);
+  console.log({ req: req.body });
+
+  let session;
   try {
     const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
     const webhookSignature = req.headers["x-razorpay-signature"];
+    console.log({ webhookSecret, webhookSignature });
 
     const isValid = validateWebhookSignature(
       JSON.stringify(req.body),
@@ -189,33 +152,73 @@ export const razorpayWebhook = async (req, res) => {
       webhookSecret
     );
 
+    console.log({ isValid });
+
     if (!isValid) {
       console.error("Invalid webhook signature");
       return res.status(400).json({ status: "invalid signature" });
     }
-
     console.log("Webhook signature is valid");
-    const { event } = req.body;
+
+    const { event, payload } = req.body;
+    console.log({ event, payload });
 
     if (event === "payment.captured") {
+      // update the user balance
+      const paymentEntity = payload?.payment?.entity;
+      const userId = paymentEntity?.notes?.userId;
+      const { order_id, id, amount } = paymentEntity;
+      const coinsToCredit = calculateCoins(amount / 100);
+      // update the user balances put it in the transaction history
+      console.log({
+        userId,
+        razorpay_order_id: order_id,
+        razorpay_payment_id: id,
+        coinsToCredit,
+      });
+      // transactions here
+      // session = await mongoose.startSession();
+      // session.startTransaction();
+
+      const coins = await Coins.findOneAndUpdate(
+        { userId: userId },
+        {
+          $inc: { balance: coinsToCredit },
+          $push: {
+            transactions: {
+              amount: coinsToCredit,
+              razorpay_payment_id: id,
+              type: "credit",
+              description: "coin_recharge",
+              timestamp: new Date(),
+            },
+          },
+        },
+        { new: true }
+      );
+      console.log({ coins });
+
       // Log the payment details to the server
-      await Logs.create({
-        userId: paymentDetails.notes.userId,
-        logData: paymentDetails,
-        action: "payment.captured",
+      // update the user balances
+      const logs = await Logs.create({
+        razorpay_order_id: order_id,
+        razorpay_payment_id: id,
+        userId,
+        logData: req.body,
+        action: "captured",
       });
-    } else if (event === "order.paid") {
-      // Log the payment details to the Logs model
-      await Logs.create({
-        userId: paymentDetails.notes.userId,
-        logData: paymentDetails,
-        action: "order.paid",
-      });
+      console.log({ logs });
+      // await session.commitTransaction();
     }
+    // this is mandatory, to tell the razorpay backend to
+    // know that you captured the request
     return res.status(200).json({ received: true });
   } catch (error) {
-    console.error("Webhook error:", error);
+    // await session.abortTransaction();
+    console.error("Webhook error: ", error);
     res.status(500).json({ error: "Webhook processing failed" });
+  } finally {
+    // await session.endSession();
   }
 };
 
@@ -227,22 +230,22 @@ function validateWebhookSignature(body, signature, secret) {
   return expectedSignature === signature;
 }
 
-async function handlePaymentFailure(orderId) {
-  try {
-    await Transactions.findOneAndUpdate(
-      { razorpay_order_id: orderId },
-      {
-        status: "failed",
-        processedAt: new Date(),
-      }
-    );
+// async function handlePaymentFailure(orderId) {
+//   try {
+//     await Transactions.findOneAndUpdate(
+//       { razorpay_order_id: orderId },
+//       {
+//         status: "failed",
+//         processedAt: new Date(),
+//       }
+//     );
 
-    return { success: false };
-  } catch (error) {
-    console.error("Error handling payment failure:", error);
-    throw error;
-  }
-}
+//     return { success: false };
+//   } catch (error) {
+//     console.error("Error handling payment failure:", error);
+//     throw error;
+//   }
+// }
 
 export function calculateCoins(amount) {
   return Math.floor(amount / 2); // 1/2 of the payment amount

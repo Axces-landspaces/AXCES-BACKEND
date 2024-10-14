@@ -17,6 +17,6 @@ router.post("/recharge", authenticateToken, rechargeCoins);
 router.post("/order/validate", authenticateToken, validateRazorpay);
 // router.post("/order/validate", validateRazorpay);
 
-router.post("/webhook/razorpay", razorpayWebhook);
+router.post("/webhook", razorpayWebhook);
 
 export default router;

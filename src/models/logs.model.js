@@ -14,14 +14,17 @@ const LogsSchema = new Schema(
     action: {
       type: String,
       required: true,
-      enum: [
-        "payment.captured",
-        // "payment.failed",
-        "order.paid",
-        // "payment.dispute.created",
-        // "refund.processed",
-        // "webhook.received",
-      ],
+      enum: ["captured"],
+    },
+    razorpay_order_id: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+    razorpay_payment_id: {
+      type: String,
+      required: true,
+      unique: true,
     },
   },
   {

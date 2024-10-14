@@ -7,6 +7,7 @@ import coinsRoutes from "./routes/coins.route.js";
 import adminRoutes from "./routes/admin.route.js";
 import autoSuggestRoutes from "./routes/autosuggestion.js";
 import dotenv from "dotenv";
+import bodyParser from "body-parser";
 
 dotenv.config();
 
@@ -17,7 +18,7 @@ const corsOptions = {
   origin: [
     "https://axces.in",
     "http://localhost:5000",
-    "http://localhost:5173/",
+    "http://localhost:5173",
     "https://free-nextjs-admin-dashboard-main-three.vercel.app",
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
@@ -28,7 +29,8 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-app.use(express.json());
+// app.use(express.json());
+app.use(bodyParser.json());
 app.use(express.urlencoded({ extended: true }));
 
 connectDB();
