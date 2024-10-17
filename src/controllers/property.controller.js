@@ -343,7 +343,7 @@ export const getPropertyDetails = async (req, res, next) => {
 //     }
 //   }
 
-//   try { 
+//   try {
 //     // Fetch user's wishlist
 //     const userWishlist = await User.findById(userId).populate("wishlist");
 //     const wishlistPropertyIds =
@@ -544,7 +544,6 @@ export const getPropertyDetails = async (req, res, next) => {
 //     next(error);
 //   }
 // };
-
 
 export const listProperties = async (req, res, next) => {
   const { userLatitude, userLongitude, owner_id, filters } = req.body;
@@ -747,11 +746,14 @@ export const listProperties = async (req, res, next) => {
       });
     }
 
+    const sanitizeId = (id) => (id && typeof id === "string" ? id.trim() : id);
     // Fetch owner details for each property
-    const ownerIds = exactProperties.map((property) => property.owner_id);
+    const ownerIds = exactProperties.map((property) =>
+      sanitizeId(property.owner_id)
+    );
     const owners = await User.find({ _id: { $in: ownerIds } }).lean();
     const ownerMap = owners.reduce((acc, owner) => {
-      acc[owner._id] = owner;
+      acc[sanitizeId(owner._id)] = owner;
       return acc;
     }, {});
 
