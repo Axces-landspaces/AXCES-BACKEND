@@ -6,8 +6,6 @@ const UserSchema = new Schema(
       type: Number,
       required: true,
       unique: true,
-      min: [10, "number must be >= 10 digits"],
-      max: [12, "number can't be greater than 12 digits"],
     },
     name: {
       type: String,
@@ -16,11 +14,6 @@ const UserSchema = new Schema(
       type: String,
       required: [true, "Email is required"],
       unique: true,
-      match: [
-        /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
-        "Please enter a valid email address",
-      ],
-      lowercase: true, // Converts email to lowercase before saving
     },
     // ! Balance is rudundant here, cuz there is two place that
     // ! balance field exists, then we need to update it two sides
