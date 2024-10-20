@@ -4,6 +4,7 @@ import Logs from "../models/logs.model.js";
 import crypto from "crypto";
 import Razorpay from "razorpay";
 import mongoose from "mongoose";
+import { Transactions } from "../models/transaction.model.js";
 
 // Get user's coin balance
 export const getBalance = async (req, res, next) => {
@@ -68,6 +69,7 @@ export const rechargeCoins = async (req, res, next) => {
     };
 
     const order = await razorpay.orders.create(options);
+
     console.log({ order });
     if (!order) {
       return res.status(500).json({
@@ -78,7 +80,15 @@ export const rechargeCoins = async (req, res, next) => {
     }
     const expectedCoins = calculateCoins(order.amount / 100);
 
-    console.log(order);
+    const txn = await Transactions.create({
+      userId: userId,
+      amount: order.amount / 100,
+      orderId: order.id,
+      status: "processing",
+      createdAt: new Date(),
+    });
+
+    console.log({ txn });
     return res.status(200).json({
       data: { order, expectedCoins },
       message: "Order created successfully.",
@@ -86,6 +96,57 @@ export const rechargeCoins = async (req, res, next) => {
   } catch (error) {
     console.error("Error recharging coins:", error);
     next(error);
+  }
+};
+
+export const checkStatus = async (req, res) => {
+  const razorpay = new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET,
+  });
+  try {
+    const { orderId } = req.body;
+    console.log({ orderId });
+
+    if (!orderId) {
+      return res.status(400).json({
+        error: "Order ID is required",
+      });
+    }
+
+    const order = await razorpay.orders.fetch(orderId);
+
+    if (!order) {
+      return res.status(404).json({
+        error: "Order not found",
+      });
+    }
+
+    if (order.status === "paid") {
+      return res.status(200).json({
+        paid: true,
+        order,
+        message: "Order is paid and successful",
+      });
+    } else if (order.status === "attempted") {
+      return res.status(200).json({
+        paid: false,
+        order,
+        message: "Order is attempted and failed",
+      });
+    } else if (order.status === "created") {
+      return res.status(200).json({
+        paid: false,
+        order,
+        message: "Order is just created and payment is pending",
+      });
+    }
+
+    console.log({ order });
+    return res.status(200).json({ order });
+  } catch (error) {
+    console.error("Error checking order status:", error);
+    res.status(500).json({ error: "Error checking order status" });
   }
 };
 
@@ -97,7 +158,6 @@ export const validateRazorpay = async (req, res, next) => {
   try {
     // get the userId from the req.user.id
     // const userId = req.user.id; // Assuming user ID is retrieved from authentication middleware
-    console.log(req.body);
     const { razorpay_payment_id, razorpay_order_id, razorpay_signature } =
       req.body;
 
@@ -118,11 +178,30 @@ export const validateRazorpay = async (req, res, next) => {
     console.log({ payment });
 
     if (payment.status === "failed") {
+      const failedtxn = await Transactions.findOneAndUpdate(
+        { orderId: razorpay_order_id },
+        {
+          status: "failed",
+          processedAt: new Date(),
+        }
+      );
+
+      console.log({ failedtxn });
+
       return res.status(402).json({
         success: false,
         msg: "Payment Failed",
       });
     }
+
+    const successTxn = await Transactions.findOneAndUpdate(
+      { orderId: razorpay_order_id },
+      {
+        status: "success",
+        processedAt: new Date(),
+      }
+    );
+    console.log({ successTxn });
 
     return res.status(200).json({
       success: true,
@@ -163,11 +242,12 @@ export const razorpayWebhook = async (req, res) => {
     const { event, payload } = req.body;
     console.log({ event, payload });
 
+    const paymentEntity = payload?.payment?.entity;
+    const userId = paymentEntity?.notes?.userId;
+    const { order_id, id, amount } = paymentEntity;
+
     if (event === "payment.captured") {
       // update the user balance
-      const paymentEntity = payload?.payment?.entity;
-      const userId = paymentEntity?.notes?.userId;
-      const { order_id, id, amount } = paymentEntity;
       const coinsToCredit = calculateCoins(amount / 100);
       // update the user balances put it in the transaction history
       console.log({
@@ -198,6 +278,15 @@ export const razorpayWebhook = async (req, res) => {
       );
       console.log({ coins });
 
+      const success = await Transactions.findOneAndUpdate(
+        { orderId: order_id },
+        {
+          status: "success",
+          processedAt: new Date(),
+        },
+        { new: true }
+      );
+      console.log({ success });
       // Log the payment details to the server
       // update the user balances
       const logs = await Logs.create({
@@ -209,7 +298,20 @@ export const razorpayWebhook = async (req, res) => {
       });
       console.log({ logs });
       // await session.commitTransaction();
+    } else {
+      console.log("Payment failed");
+      console.log({ order_id });
+      const txnFailed = await Transactions.findOneAndUpdate(
+        { orderId: order_id },
+        {
+          status: "failed",
+          processedAt: new Date(),
+        },
+        { new: true }
+      );
+      console.log({ txnFailed });
     }
+
     // this is mandatory, to tell the razorpay backend to
     // know that you captured the request
     return res.status(200).json({ received: true });
@@ -229,6 +331,19 @@ function validateWebhookSignature(body, signature, secret) {
     .digest("hex");
   return expectedSignature === signature;
 }
+
+export const userTransactions = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const transactions = await Transactions.find({ userId }).sort({
+      createdAt: -1,
+    });
+    res.json(transactions);
+  } catch (error) {
+    console.error("Error fetching transactions:", error);
+    res.status(500).json({ error: "Error fetching transactions" });
+  }
+};
 
 // async function handlePaymentFailure(orderId) {
 //   try {

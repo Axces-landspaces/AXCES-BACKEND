@@ -5,6 +5,8 @@ import {
   razorpayWebhook,
   rechargeCoins,
   validateRazorpay,
+  userTransactions,
+  checkStatus,
 } from "../controllers/coins.controller.js";
 
 const router = express.Router();
@@ -16,7 +18,8 @@ router.post("/recharge", authenticateToken, rechargeCoins);
 
 router.post("/order/validate", authenticateToken, validateRazorpay);
 // router.post("/order/validate", validateRazorpay);
-
+router.get("/transactions/:userId", authenticateToken, userTransactions);
+router.get("/payment/status", authenticateToken, checkStatus);
 router.post("/webhook", razorpayWebhook);
 
 export default router;
