@@ -43,6 +43,6 @@ router.get(
 router.post("/property/addToWishlist", authenticateToken, addToWishlist);
 router.get("/property/viewWishlist", authenticateToken, viewWishlist);
 
-router.get("/property/:id", getPropertyDetails);
+router.get("/property/:pid", authenticateToken, getPropertyDetails);
 
 export default router;

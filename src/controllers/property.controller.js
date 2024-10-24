@@ -282,26 +282,41 @@ export const deleteProperty = async (req, res, next) => {
 };
 
 export const getPropertyDetails = async (req, res, next) => {
-  const { id } = req.params;
-  console.log("id: ", id);
+  const { pid } = req.params;
+
+  const id = req.user.id;
+
+  console.log({ pid });
+  console.log({ id });
 
   try {
-    let property = await Property.findById(id);
+    let property = await Property.findById(pid);
     console.log({ property });
 
     if (!property) {
       return next(errorHandler(404, res, "Property not found"));
     }
 
-    const user = await User.findById(property.owner_id);
-    console.log({ user });
-
+    const owner = await User.findById(property.owner_id);
+    console.log({ owner });
     // Convert to plain JavaScript object
     property = property.toObject();
+    property.owner_name = owner.name;
+    property.owner_phone = owner.number;
+    property.owner_profile_picture = owner?.profilePicture;
+    // Check if the property is in the user's wishlist
 
-    property.owner_name = user.name;
-    property.owner_phone = user.number;
-    property.owner_profile_picture = user?.profilePicture;
+    // this is logged in user, not the owner
+    // if that already in wishlist
+
+    const user = await User.findById(id);
+
+    console.log({ user });
+    if (user && user.wishlist.includes(property._id)) {
+      property.isInWishlist = true;
+    } else {
+      property.isInWishlist = false;
+    }
 
     res.status(200).json({
       code: 200,
@@ -933,7 +948,12 @@ export const viewWishlist = async (req, res, next) => {
       return next(errorHandler(404, res, "User not found"));
     }
 
-    res.status(200).json({ status: "success", data: user.wishlist });
+    const wishlistWithFlag = user.wishlist.map((property) => ({
+      ...property.toObject(),
+      isInWishlist: true,
+    }));
+
+    res.status(200).json({ status: "success", data: wishlistWithFlag });
   } catch (error) {
     console.error("Error viewing wishlist:", error);
     next(error);
