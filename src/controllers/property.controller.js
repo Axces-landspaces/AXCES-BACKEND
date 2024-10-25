@@ -859,7 +859,7 @@ export const contactOwner = async (req, res, next) => {
 
     userCoins.transactions.push({
       amount: defaultOwnerDetailsBalance,
-      description: "post_property",
+      description: "owner_details",
       timestamp: new Date(),
       type: "debit",
     });
@@ -867,12 +867,19 @@ export const contactOwner = async (req, res, next) => {
     userCoins.balance -= defaultOwnerDetailsBalance;
     await userCoins.save();
     // Respond with owner's contact details
+
+    const propertyOwnerId = property.owner_id;
+    console.log({ propertyOwnerId });
+    
+    const owner = await User.findById(propertyOwnerId);
+    console.log({ owner });
+
     res.status(200).json({
       code: 200,
       data: {
         owner_details: {
-          owner_name: property.owner_name,
-          contact_phone: property.owner_phone,
+          owner_name: owner.name,
+          contact_phone: owner.number,
         },
       },
       message: "Contact details retrieved successfully",
