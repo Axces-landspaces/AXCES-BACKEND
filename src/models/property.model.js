@@ -14,7 +14,7 @@ const PropertySchema = new mongoose.Schema(
     },
     property_type: {
       type: String,
-      enum: ["residential", "commercial"],
+      enum: ["residential", "Residential", "Commercial", "commercial"],
       required: true,
     },
     property_subtype: {

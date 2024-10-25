@@ -105,7 +105,7 @@ export const postProperty = async (req, res, next) => {
       }
     }
 
-    if (property_type === "commercial") {
+    if (property_type === "commercial" || property_type === "Commercial") {
       if (
         property_subtype === "apartment" ||
         property_subtype === "independent house" ||
