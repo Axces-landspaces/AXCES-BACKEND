@@ -16,7 +16,7 @@ import { verifyAdminToken } from "../middlewares/verifyAdmin.middleware.js";
 
 const router = express.Router();
 // Admin Signin
-router.post("/signinAdmin", verifyAdminToken, signinAdmin);
+router.post("/signinAdmin", signinAdmin);
 // Get All Users
 router.get("/users", verifyAdminToken, getAllUsers);
 
