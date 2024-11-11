@@ -29,7 +29,7 @@ const CoinsSchema = new mongoose.Schema({
       },
       razorpay_payment_id: {
         type: String,
-        unique: true,
+        required: true,
       },
       type: {
         type: String,

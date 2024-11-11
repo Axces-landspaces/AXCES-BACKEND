@@ -51,6 +51,7 @@ export const createProfile = async (req, res, next) => {
 
       const coins = new Coins({ userId: user._id, balance });
       await coins.save();
+      console.log(coins);
 
       const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
 
