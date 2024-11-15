@@ -5,6 +5,7 @@ import mongoose from "mongoose";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { errorHandler } from "../utils/error.js";
 import { getDistance } from "geolib";
+import Prices from "../models/prices.model.js";
 
 export const postProperty = async (req, res, next) => {
   // const owner_id = req.params.id;
@@ -161,8 +162,11 @@ export const postProperty = async (req, res, next) => {
     });
 
     // Fetch the default property post cost and user's coin balance
-    const defaultCoinConfig = await Coins.findOne({});
-    const defaultPropertyPostCost = defaultCoinConfig.defaultPropertyPostCost;
+    const charges = await Prices.findOne({});
+    console.log({charges});
+    const propertyPostCharges = charges.propertyPostCost;
+    console.log(propertyPostCharges);
+    console.log(typeof propertyPostCharges);
 
     let userCoins = await Coins.findOne({ userId: owner_id });
 
@@ -171,16 +175,16 @@ export const postProperty = async (req, res, next) => {
       return next(errorHandler(402, res, "User coins entry not found"));
     }
     console.log({ userCoins });
-    if (!userCoins || userCoins.balance < defaultPropertyPostCost) {
+    if (!userCoins || userCoins.balance < propertyPostCharges) {
       return next(errorHandler(402, res, "Insufficient balance"));
     }
     // Save the property and update user's coin balance
     await property.save();
 
-    userCoins.balance -= defaultPropertyPostCost;
+    userCoins.balance -= propertyPostCharges;
     // this is the transaction history
     userCoins.transactions.push({
-      amount: defaultPropertyPostCost,
+      amount: propertyPostCharges,
       description: "property_post",
       timestamp: new Date(),
       type: "debit",
@@ -332,7 +336,7 @@ export const getPropertyDetails = async (req, res, next) => {
 // export const listPropertiessafe = async (req, res, next) => {
 //   const { userLatitude, userLongitude, owner_id, filters } = req.body;
 //   const userId = req.user.id;
-
+//
 //   // this is the requested code for owner's properties
 //   if (owner_id) {
 //     console.log(owner_id);
@@ -346,7 +350,7 @@ export const getPropertyDetails = async (req, res, next) => {
 //           message: "No properties found for the given owner",
 //         });
 //       }
-
+//
 //       return res.status(200).json({
 //         code: 200,
 //         data: ownerProperties,
@@ -357,13 +361,13 @@ export const getPropertyDetails = async (req, res, next) => {
 //       return next(error);
 //     }
 //   }
-
+//
 //   try {
 //     // Fetch user's wishlist
 //     const userWishlist = await User.findById(userId).populate("wishlist");
 //     const wishlistPropertyIds =
 //       userWishlist?.wishlist.map((item) => item._id.toString()) || [];
-
+//
 //     if (!userLatitude || !userLongitude) {
 //       return res.status(400).json({
 //         code: 400,
@@ -371,7 +375,7 @@ export const getPropertyDetails = async (req, res, next) => {
 //         message: "User latitude and longitude are required",
 //       });
 //     }
-
+//
 //     const exactQuery = {};
 //     // Apply filters for exact match query
 //     if (filters) {
@@ -426,7 +430,7 @@ export const getPropertyDetails = async (req, res, next) => {
 //           $options: "i",
 //         };
 //       }
-
+//
 //       if (filters.building_name) {
 //         exactQuery.building_name = {
 //           $regex: `\\b${filters.building_name}\\b`,
@@ -466,7 +470,7 @@ export const getPropertyDetails = async (req, res, next) => {
 //       if (filters.available_from) {
 //         exactQuery.available_from = filters.available_from;
 //       }
-
+//
 //       // monthly rent filter - range based
 //       if (filters.monthly_rent && Array.isArray(filters.monthly_rent)) {
 //         if (filters.monthly_rent[0] && filters.monthly_rent[1]) {
@@ -476,7 +480,7 @@ export const getPropertyDetails = async (req, res, next) => {
 //           };
 //         }
 //       }
-
+//
 //       if (filters.security_deposit) {
 //         exactQuery.security_deposit = filters.security_deposit;
 //       }
@@ -502,9 +506,9 @@ export const getPropertyDetails = async (req, res, next) => {
 //         exactQuery.facilities = { $all: filters.facilities };
 //       }
 //     }
-
+//
 //     const exactProperties = await Property.find(exactQuery).lean();
-
+//
 //     if (exactProperties.length === 0) {
 //       return res.status(200).json({
 //         code: 200,
@@ -512,7 +516,7 @@ export const getPropertyDetails = async (req, res, next) => {
 //         message: "No properties match the given filters",
 //       });
 //     }
-
+//
 //     // Calculate distance and add it to the properties
 //     const addDistanceToProperties = (properties) => {
 //       return properties.map((property) => {
@@ -532,23 +536,23 @@ export const getPropertyDetails = async (req, res, next) => {
 //           );
 //           property.distance = distance / 1000; // distance in kilometers
 //         }
-
+//
 //         // Check if the property is in the user's wishlist
 //         property.isInWishlist = wishlistPropertyIds.includes(
 //           property._id.toString()
 //         );
-
+//
 //         return property;
 //       });
 //     };
-
+//
 //     const exactPropertiesWithDistance =
 //       addDistanceToProperties(exactProperties);
-
+//
 //     exactPropertiesWithDistance.sort(
 //       (a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity)
 //     );
-
+//
 //     res.status(200).json({
 //       code: 200,
 //       data: exactPropertiesWithDistance.slice(0, 10), // Limit to 10 properties
@@ -842,12 +846,11 @@ export const contactOwner = async (req, res, next) => {
     }
 
     // Fetch the default cost for contacting owner and user's coin balance
-    const defaultCoinConfig = await Coins.findOne({});
-    const defaultOwnerDetailsBalance =
-      defaultCoinConfig.defaultOwnerDetailsCost;
+    const charges = await Prices.findOne({});
+    const ownerDetailsCharges = charges.propertyContactCost;
 
     const userCoins = await Coins.findOne({ userId });
-    if (!userCoins || userCoins.balance < defaultOwnerDetailsBalance) {
+    if (!userCoins || userCoins.balance < ownerDetailsCharges) {
       return next(
         errorHandler(
           402,
@@ -858,19 +861,19 @@ export const contactOwner = async (req, res, next) => {
     }
 
     userCoins.transactions.push({
-      amount: defaultOwnerDetailsBalance,
+      amount: ownerDetailsCharges,
       description: "owner_details",
       timestamp: new Date(),
       type: "debit",
     });
 
-    userCoins.balance -= defaultOwnerDetailsBalance;
+    userCoins.balance -= ownerDetailsCharges;
     await userCoins.save();
     // Respond with owner's contact details
 
     const propertyOwnerId = property.owner_id;
     console.log({ propertyOwnerId });
-    
+
     const owner = await User.findById(propertyOwnerId);
     console.log({ owner });
 

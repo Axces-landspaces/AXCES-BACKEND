@@ -1,11 +1,14 @@
 import Admin from "../models/admin.model.js";
 import User from "../models/user.model.js";
 import Property from "../models/property.model.js";
+import Prices from "../models/prices.model.js";
+import excelJs from "exceljs";
 import { errorHandler } from "../utils/error.js";
 import Coins from "../models/coins.model.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
+import pricesModel from "../models/prices.model.js";
 
 const HARD_CODED_SECRET_TOKEN = "ADMIN"; // Hard-coded token for verification
 
@@ -47,10 +50,63 @@ export const signinAdmin = async (req, res) => {
   }
 };
 
+async function generateExcelUser(users) {
+  const workbook = new excelJs.Workbook();
+  const worksheet = workbook.addWorksheet("Users");
+
+  worksheet.columns = [
+    { header: "Name", key: "name", width: 30 },
+    { header: "Phone Number", key: "number", width: 30 },
+    { header: "Email", key: "email", width: 50 },
+    { header: "Profile Picture", key: "profile_picture", width: 30 },
+    { header: "Balance", key: "balance", width: 30 },
+  ];
+  // Style the header row
+  worksheet.getRow(1).font = { bold: true };
+  worksheet.getRow(1).fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "FFE0E0E0" },
+  };
+
+  // add data rows
+  users.forEach((user) => {
+    worksheet.addRow({
+      name: user.name,
+      number: user.number,
+      email: user.email,
+      profile_picture: user.profilePicture,
+      balance: user.balance,
+    });
+  });
+
+  return await workbook.xlsx.writeBuffer();
+}
+
 // Get All Users working
 export const getAllUsers = async (req, res) => {
+  const { excel_download, filters } = req.body;
+
+  const exactQuery = {};
+  if (filters) {
+    if (filters.dateRange) {
+      const { startDate, endDate } = filters.dateRange;
+      if (startDate && endDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        exactQuery.createdAt = {
+          $gte: start, // Greater than or equal to start date
+          $lte: end, // Less than or equal to end date
+        };
+      }
+    }
+  }
+  console.log(exactQuery);
+
   try {
-    const users = await User.find();
+    const users = await User.find(exactQuery);
     const usersWithBalances = await Promise.all(
       users.map(async (user) => {
         const userBalance = await Coins.findOne({ userId: user._id });
@@ -60,7 +116,23 @@ export const getAllUsers = async (req, res) => {
         };
       })
     );
-    res.json(usersWithBalances);
+
+    console.log({ usersWithBalances });
+
+    if (excel_download) {
+      // Generate Excel file based on the filtered data
+      const excelBuffer = await generateExcelUser(usersWithBalances);
+      // set headers for excel download
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      res.setHeader("Content-Disposition", "attachment; filename=users.xlsx");
+
+      return res.status(200).send(excelBuffer);
+    }
+
+    return res.json(usersWithBalances);
   } catch (error) {
     console.error("Error in getAllUsers:", error);
     res
@@ -177,25 +249,192 @@ export const viewAllPropertiesdemo = async (req, res, next) => {
     next(errorHandler(500, res, "Something went wrong"));
   }
 };
+/**
+ * Generate Excel file for properties data
+ * @param {Array} properties - Filtered properties data
+ * @returns {Promise<Buffer>} Excel file buffer
+ */
+async function generateExcel(properties) {
+  const workbook = new excelJs.Workbook();
+  const worksheet = workbook.addWorksheet("Properties");
+
+  // Define columns based on your Property schema
+  worksheet.columns = [
+    { header: "Title", key: "title", width: 30 },
+    { header: "Listing Type", key: "listing_type", width: 15 },
+    { header: "Property Type", key: "property_type", width: 15 },
+    { header: "Property Subtype", key: "property_subtype", width: 20 },
+    { header: "Posted By", key: "property_posted_by", width: 15 },
+    { header: "Address", key: "address", width: 40 },
+    { header: "Pincode", key: "pincode", width: 10 },
+    { header: "Building Name", key: "building_name", width: 25 },
+    { header: "Bedrooms", key: "bedrooms", width: 10 },
+    { header: "Bathrooms", key: "bathrooms", width: 10 },
+    { header: "Area (sq ft)", key: "area_sqft", width: 15 },
+    { header: "Property Age", key: "property_age", width: 15 },
+    { header: "Facing", key: "facing", width: 15 },
+    { header: "Floor Number", key: "floor_number", width: 15 },
+    { header: "Total Floors", key: "total_floors", width: 15 },
+    { header: "Furnish Type", key: "furnish_type", width: 20 },
+    { header: "Available From", key: "available_from", width: 15 },
+    { header: "Monthly Rent", key: "monthly_rent", width: 15 },
+    { header: "Security Deposit", key: "security_deposit", width: 15 },
+    { header: "Preferred Tenant", key: "preferred_tenant", width: 15 },
+    { header: "Localities", key: "localities", width: 30 },
+    { header: "Landmark", key: "landmark", width: 25 },
+    { header: "Facilities", key: "facilities", width: 40 },
+    { header: "Owner Name", key: "owner_name", width: 20 },
+    { header: "Owner Email", key: "owner_email", width: 30 },
+    { header: "Owner Phone", key: "owner_phone", width: 15 },
+    {
+      header: "Owner Profile Picture",
+      key: "owner_profilepictures",
+      width: 45,
+    },
+  ];
+
+  // Style the header row
+  worksheet.getRow(1).font = { bold: true };
+  worksheet.getRow(1).fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "FFE0E0E0" },
+  };
+
+  // Add data rows
+  properties.forEach((property) => {
+    worksheet.addRow({
+      title: property.title,
+      listing_type: property.listing_type,
+      property_type: property.property_type,
+      property_subtype: property.property_subtype,
+      property_posted_by: property.property_posted_by,
+      address: property.address,
+      pincode: property.pincode,
+      building_name: property.building_name,
+      bedrooms: property.bedrooms,
+      bathrooms: property.bathrooms,
+      area_sqft: property.area_sqft,
+      property_age: property.property_age,
+      facing: property.facing,
+      floor_number: property.floor_number,
+      total_floors: property.total_floors,
+      furnish_type: property.furnish_type,
+      available_from: property.available_from
+        ? new Date(property.available_from).toLocaleDateString()
+        : "",
+      monthly_rent: property.monthly_rent,
+      security_deposit: property.security_deposit,
+      preferred_tenant: property.preferred_tenant,
+      localities: Array.isArray(property.localities)
+        ? property.localities.join(", ")
+        : property.localities,
+      landmark: property.landmark,
+      facilities: Array.isArray(property.facilities)
+        ? property.facilities.join(", ")
+        : property.facilities,
+      owner_name: property.owner_name,
+      owner_email: property.owner_email,
+      owner_phone: property.owner_phone,
+      owner_profilepictures: properties.owner_profilepictures,
+    });
+  });
+
+  // Format number columns
+  worksheet.getColumn("monthly_rent").numFmt = "₹#,##0";
+  worksheet.getColumn("security_deposit").numFmt = "₹#,##0";
+  worksheet.getColumn("area_sqft").numFmt = "#,##0";
+
+  // Auto-filter for all columns
+  worksheet.autoFilter = {
+    from: { row: 1, column: 1 },
+    to: { row: 1, column: worksheet.columns.length },
+  };
+
+  return await workbook.xlsx.writeBuffer();
+}
 
 export const viewAllProperties = async (req, res, next) => {
   try {
+    const { excel_download, filters } = req.body;
     // Fetch properties
-    const properties = await Property.find();
+    // filtering based on the state, pincode
+    const exactQuery = {};
+    // Apply filters for exact match query
+    if (filters) {
+      if (filters.dateRange) {
+        const { startDate, endDate } = filters.dateRange;
+
+        if (startDate && endDate) {
+          const start = new Date(startDate);
+          start.setHours(0, 0, 0, 0);
+
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+
+          exactQuery.createdAt = {
+            $gte: start, // Greater than or equal to start date
+            $lte: end, // Less than or equal to end date
+          };
+        }
+      }
+
+      if (filters.pincode) {
+        exactQuery.pincode = filters.pincode;
+      }
+
+      // Add enum validation for specific fields
+      const enumFields = {
+        listing_type: ["buy", "rent"],
+        property_type: [
+          "residential",
+          "Residential",
+          "Commercial",
+          "commercial",
+        ],
+        property_subtype: [
+          "office",
+          "shop",
+          "plot",
+          "others",
+          "apartment",
+          "independent house",
+          "villa",
+          "independent floor",
+          "pg",
+        ],
+        property_posted_by: ["owner", "agent"],
+        furnish_type: ["Fully Furnished", "Semi Furnished", "Un-Furnished"],
+        preferred_tenant: ["any", "family", "bachelor"],
+      };
+
+      // Validate and apply enum filters
+      Object.entries(enumFields).forEach(([field, validValues]) => {
+        if (filters[field] && validValues.includes(filters[field])) {
+          exactQuery[field] = filters[field];
+        }
+      });
+    }
+
+    console.log({ exactQuery });
+    const exactProperties = await Property.find(exactQuery).lean();
+    console.log({ exactProperties });
+
+    // ! don't touch this code below "propertiesWithUserDetails"
     // Manually fetch user details for each property
     const propertiesWithUserDetails = await Promise.all(
-      properties.map(async (property) => {
+      exactProperties.map(async (property) => {
         // Sanitize owner_id to remove any newlines or extra spaces
         const sanitizedOwnerId = property?.owner_id?.trim();
 
         // Fetch user details based on the sanitized owner_id
         const ownerDetails = await User.findOne(
           { _id: sanitizedOwnerId },
-          "name email"
+          "name email number profilePicture"
         );
 
         return {
-          ...property._doc, // Spread the property details
+          ...property, // Spread the property details
           owner_name: ownerDetails?.name, // Attach the owner's details
           owner_phone: ownerDetails?.number,
           owner_email: ownerDetails?.email,
@@ -203,8 +442,24 @@ export const viewAllProperties = async (req, res, next) => {
         };
       })
     );
+    console.log({ propertiesWithUserDetails });
 
-    res.status(200).json({
+    if (excel_download) {
+      // Generate Excel file based on the filtered data
+      const excelBuffer = await generateExcel(propertiesWithUserDetails);
+      // set headers for excel download
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      res.setHeader(
+        "Content-Disposition",
+        "attachment; filename=properties.xlsx"
+      );
+      return res.status(200).send(excelBuffer);
+    }
+
+    return res.status(200).json({
       code: 200,
       data: propertiesWithUserDetails,
       message: "Properties fetched successfully",
@@ -371,7 +626,6 @@ export const adminDashboard = async (req, res, next) => {
     const totalProperties = await Property.countDocuments();
     // this is the number of wallet which is 1 to 1 relationship with user
     // const totalTransactions = await Coins.countDocuments();
-
     // total transactions made on the platform including credit and debit
     const totalTransactions = await Coins.aggregate([
       {
@@ -501,18 +755,82 @@ export const adminDashboard = async (req, res, next) => {
       { $limit: 12 }, // Limit to the last 12 months
     ]);
 
+    // this is the default coins values
+    const propertyPostAndOwnerDetailsCost = await Prices.findOne();
+    const propertyContactAndPostCost = {
+      propertyPostCost: propertyPostAndOwnerDetailsCost.propertyPostCost,
+      ownerDetailsCost: propertyPostAndOwnerDetailsCost.propertyContactCost,
+    };
+
+    // total revenue
+    const totalRevenue = await Coins.aggregate([
+      {
+        $unwind: "$transactions",
+      },
+      {
+        $group: {
+          _id: null,
+          totalRevenue: {
+            $sum: {
+              $cond: [
+                { $eq: ["$transactions.type", "debit"] },
+                "$transactions.amount",
+                0,
+              ],
+            },
+          },
+        },
+      },
+    ]);
+ 
     res.status(200).json({
       data: {
         totalUsers,
         totalProperties,
         totalTransactions,
         totalPropertiesByTypes,
-
+        totalRevenue,
         dailyAggregation,
         weeklyAggregation,
         monthlyAggregation,
+        propertyContactAndPostCost,
       },
       message: "Dashboard data fetched successfully.",
+    });
+  } catch (error) {
+    console.error("Error fetching dashboard data:", error);
+    next(error);
+  }
+};
+
+export const updatePropertyAndContractCharges = async (req, res, next) => {
+  const { propertyPostCost, propertyContactCost } = req.body;
+  try {
+    const updateFields = {};
+
+    if (propertyPostCost !== undefined) {
+      // Ensure the new default value is a valid number
+      if (typeof propertyPostCost !== "number" || propertyPostCost < 0) {
+        return res
+          .status(400)
+          .json({ code: 400, message: "Invalid property post coin value" });
+      }
+      updateFields.propertyPostCost = propertyPostCost;
+    }
+
+    if (propertyContactCost !== undefined) {
+      // Ensure the new default value is a valid number
+      if (typeof propertyContactCost !== "number" || propertyContactCost < 0) {
+        return res
+          .status(400)
+          .json({ code: 400, message: "Invalid owner details coin value" });
+      }
+      updateFields.propertyContactCost = propertyContactCost;
+    }
+
+    await Prices.updateOne({}, { $set: updateFields });
+    res.status(200).json({
+      message: "Property and Contact charges updated successfully",
     });
   } catch (error) {
     console.error("Error fetching dashboard data:", error);
@@ -576,4 +894,19 @@ export const updateDefaultCoinValues = async (req, res, next) => {
     console.error("Error updating default coin values:", error);
     next(error);
   }
+};
+
+export const generateExcelFiles = async (req, res, next) => {
+  const {} = req.body;
+
+  res.setHeader(
+    "Content-Type",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  );
+  res.setHeader(
+    "Content-Disposition",
+    "attachment; filename=filtered-data.xlsx"
+  );
+
+  res.send();
 };
