@@ -1,0 +1,491 @@
+export const invoiceComponent = (data) => {
+  return `
+    <!DOCTYPE html>
+        <html lang="en">
+            <head>
+                <meta charset="utf-8">
+                <title>Make IT</title>
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <style>
+                    a,
+                    table {
+                        background-color: transparent
+                    }
+
+                    * {
+                        font-style: normal;
+                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                        margin: 0;
+                        padding: 0;
+                    }
+
+                    h1,
+                    h2,
+                    h3,
+                    h4,
+                    h5,
+                    h6 {
+                        font-family: inherit;
+                        color: inherit;
+                        font-weight: 300
+                    }
+
+                    .invoice {
+                        padding: 30px
+                    }
+
+                    .invoice h2 {
+                        margin-top: 0;
+                        line-height: .8em
+                    }
+
+                    .invoice .small {
+                        font-weight: 300
+                    }
+
+                    .invoice hr {
+                        margin-top: 10px;
+                        border-color: #ddd
+                    }
+
+                    .invoice .table tr.line {
+                        border-bottom: 1px solid #ccc
+                    }
+
+                    .invoice .table td {
+                        border: none
+                    }
+
+                    .invoice .identity {
+                        margin-top: 10px;
+                        font-size: 1.1em;
+                        font-weight: 300
+                    }
+
+                    .invoice .identity strong {
+                        font-weight: 600
+                    }
+
+                    .line,
+                    address h3 {
+                        font-size: 28px;
+                        color: #88ff99;
+                        font-weight: 700
+                    }
+
+                    .end,
+                    address,
+                    address h4 {
+                        font-size: 20px
+                    }
+
+                    address h4 {
+                        color: #000;
+                        font-weight: 500
+                    }
+
+                    address {
+                        color: #000
+                    }
+
+                    address h1 {
+                        font-size: 40px;
+                        color: #000;
+                        font-weight: 700
+                    }
+
+                    .grid {
+                        width: 100%;
+                        background: #fff;
+                        color: #666;
+                        border-radius: 2px;
+                    }
+
+                    tr {
+                        font-size: 23px
+                    }
+
+                    .table-total {
+                        color: #000
+                    }
+
+                    .end {
+                        text-align: center
+                    }
+
+                    .text-left,
+                    caption,
+                    th {
+                        text-align: left
+                    }
+
+                    .container {
+                        width: 95%;
+                    }
+
+                    .col-xs-6 {
+                        width: 50%
+                    }
+
+                    .col-md-12,
+                    .col-xs-12,
+                    .table {
+                        width: 100%
+                    }
+
+                    .col-xs-12,
+                    .col-xs-6 {
+                        float: left
+                    }
+
+                    .col-lg-12,
+                    .col-lg-6,
+                    .col-md-12,
+                    .col-md-6,
+                    .col-sm-12,
+                    .col-sm-6,
+                    .col-xs-12 {
+                        position: relative;
+                        min-height: 1px
+                    }
+
+                    .small {
+                        font-size: 85%
+                    }
+
+                    table {
+                        border-spacing: 0;
+                        border-collapse: collapse
+                    }
+
+                    .table-striped-color {
+                        background-color: #f9f9f9
+                    }
+
+                    caption {
+                        padding-top: 8px;
+                        padding-bottom: 8px;
+                        color: #777
+                    }
+
+                    .table {
+                        max-width: 100%;
+                        margin-bottom: 20px
+                    }
+
+                    .table>tbody>tr>td,
+                    .table>tbody>tr>th,
+                    .table>tfoot>tr>td,
+                    .table>tfoot>tr>th,
+                    .table>thead>tr>td,
+                    .table>thead>tr>th {
+                        padding: 8px;
+                        line-height: 1.42857143;
+                        vertical-align: top;
+                        border-top: 1px solid #ddd
+                    }
+
+                    .table>thead>tr>th {
+                        vertical-align: bottom;
+                        border-bottom: 2px solid #ddd
+                    }
+
+                    .table>caption+thead>tr:first-child>td,
+                    .table>caption+thead>tr:first-child>th,
+                    .table>colgroup+thead>tr:first-child>td,
+                    .table>colgroup+thead>tr:first-child>th,
+                    .table>thead:first-child>tr:first-child>td,
+                    .table>thead:first-child>tr:first-child>th {
+                        border-top: 0
+                    }
+
+                    .table>tbody+tbody {
+                        border-top: 2px solid #ddd
+                    }
+
+                    .table .table {
+                        background-color: #fff
+                    }
+
+                    .h1,
+                    .h2,
+                    .h3,
+                    .h4,
+                    .h5,
+                    .h6,
+                    h1,
+                    h2,
+                    h3,
+                    h4,
+                    h5,
+                    h6 {
+                        font-family: inherit;
+                        font-weight: 500;
+                        line-height: 1.1;
+                        color: inherit
+                    }
+
+                    .h1 .small,
+                    .h1 small,
+                    .h2 .small,
+                    .h2 small,
+                    .h3 .small,
+                    .h3 small,
+                    .h4 .small,
+                    .h4 small,
+                    .h5 .small,
+                    .h5 small,
+                    .h6 .small,
+                    .h6 small,
+                    h1 .small,
+                    h1 small,
+                    h2 .small,
+                    h2 small,
+                    h3 .small,
+                    h3 small,
+                    h4 .small,
+                    h4 small,
+                    h5 .small,
+                    h5 small,
+                    h6 .small,
+                    h6 small {
+                        font-weight: 400;
+                        line-height: 1;
+                        color: #777
+                    }
+
+                    .h1,
+                    .h2,
+                    .h3,
+                    h1,
+                    h2,
+                    h3 {
+                        margin-top: 20px;
+                        margin-bottom: 10px
+                    }
+
+                    .h1 .small,
+                    .h1 small,
+                    .h2 .small,
+                    .h2 small,
+                    .h3 .small,
+                    .h3 small,
+                    h1 .small,
+                    h1 small,
+                    h2 .small,
+                    h2 small,
+                    h3 .small,
+                    h3 small {
+                        font-size: 65%
+                    }
+
+                    .h4,
+                    .h5,
+                    .h6,
+                    h4,
+                    h5,
+                    h6 {
+                        margin-top: 10px;
+                        margin-bottom: 10px
+                    }
+
+                    .h4 .small,
+                    .h4 small,
+                    .h5 .small,
+                    .h5 small,
+                    .h6 .small,
+                    .h6 small,
+                    h4 .small,
+                    h4 small,
+                    h5 .small,
+                    h5 small,
+                    h6 .small,
+                    h6 small {
+                        font-size: 75%
+                    }
+
+                    .h1,
+                    h1 {
+                        font-size: 36px
+                    }
+
+                    .h2,
+                    h2 {
+                        font-size: 30px
+                    }
+
+                    .h3,
+                    h3 {
+                        font-size: 24px
+                    }
+
+                    .h4,
+                    h4 {
+                        font-size: 18px
+                    }
+
+                    .h5,
+                    h5 {
+                        font-size: 14px
+                    }
+
+                    .h6,
+                    h6 {
+                        font-size: 12px
+                    }
+
+                    p {
+                        margin: 0 0 10px
+                    }
+
+                    .text-right {
+                        text-align: right
+                    }
+
+                    .text-center {
+                        text-align: center
+                    }
+
+                    hr {
+                        margin-top: 20px;
+                        margin-bottom: 20px;
+                        border: 0;
+                        border-top: 1px solid #eee !important;
+                    }
+
+                    a {
+                        color: #337ab7;
+                        text-decoration: none
+                    }
+                </style>
+            </head>
+
+            <body>
+                <div class="container">
+                    <div class="row"> <!-- BEGIN INVOICE -->
+                        <div class="col-xs-12">
+                            <div class="grid invoice">
+                                <div class="grid-body">
+                                    <div class="invoice-title">
+                                        <div class="row">
+                                            <div class="col-xs-12">
+                                                <h2>
+                                                    <bold style="color:black ;">invoice</bold><br> <span class="small">order
+                                                        #${data.invoiceNumber}</span>
+                                                </h2>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-xs-6">
+                                            <address>
+                                                <h3>Sold by </h3>
+                                                <h4><strong>Augmont Goldtech Private Limited</strong></h4> (Formerly known as
+                                                Augmont Precious Metals Private Limited)<br> Address:<br> 504,5th Floor,Trade Link,E
+                                                wing,Kamala Mills<br> Compound,Lower Parel,Mumbai,Maharashtra <br> 400013 <br>
+                                                <h3>GSTIN:</h3>
+                                                <h4><strong>Augmont Goldtech Private Limited</strong></h4> 27AATCA3030A1Z3 <h3>
+                                                    Customer Address</h3>
+                                                <h4><strong>${data.userInfo.name}</strong></h4> ${data.userInfo.address},
+                                                ${data.userInfo.city}, ${data.userInfo.state} <br> ${data.userInfo.pincode} <br>
+                                                ${data.userInfo.mobileNumber} <br> <a
+                                                    href="${data.userInfo.email}">${data.userInfo.email}</a>
+                                                <h3>Augmont Unique Id:</h3> ${data.userInfo.uniqueId} <br>
+                                                <h3>Payment Mode Used:</h3> UPI <br>
+                                            </address>
+                                        </div>
+                                        <div class="col-xs-6 text-right">
+                                            <address> Original for recipient <h1>TAX INVOICE </h1><br>
+                                                <h3>INVOICE :</h3> ${data.invoiceNumber} <br>
+                                                <h3>DATE:</h3> ${data.invoiceDate} <br>
+                                            </address>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <table class="table table-striped">
+                                                <thead>
+                                                    <tr class="line">
+                                                        <td class="text-left">Description</td>
+                                                        <td class="text-center">HSN Code</td>
+                                                        <td class="text-center">${data.unitType}</td>
+                                                        <td class="text-right">Rate/gm (INR)</td>
+                                                        <td class="text-right">Amount (INR)</td>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr class="table-striped-color">
+                                                        <td>${data.metalType} ${data.karat} ${data.purity}</td>
+                                                        <td>${data.hsnCode}</td>
+                                                        <td class="text-center">${data.quantity}</td>
+                                                        <td class="text-center">${data.rate}(INR/gm)</td>
+                                                        <td class="text-right">${data.grossAmount}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="table-total"><strong>Net Total</strong></td>
+                                                        <td></td>
+                                                        <td class="text-center">${data.quantity}</td>
+                                                        <td class="text-center"></td>
+                                                        <td class="text-right">${data.grossAmount}</td>
+                                                    </tr>
+                                                    <tr class="table-striped-color">
+                                                        <td class="table-total"><strong>CGST</strong></td>
+                                                        <td></td>
+                                                        <td class="text-center"></td>
+                                                        <td class="text-center CGSTAmount">${data.taxes.taxSplit[0].taxPerc}%</td>
+                                                        <td class="text-right CGSTRATE">${data.taxes.taxSplit[0].taxAmount}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="table-total"><strong>SGST</strong></td>
+                                                        <td></td>
+                                                        <td class="text-center"></td>
+                                                        <td class="text-center SGSTAmount">${data.taxes.taxSplit[1].taxPerc}%</td>
+                                                        <td class="text-right SGSTRATE">${data.taxes.taxSplit[1].taxPerc}</td>
+                                                    </tr>
+                                                    <tr class="table-striped-color">
+                                                        <td class="table-total"><strong>IGST</strong></td>
+                                                        <td></td>
+                                                        <td class="text-center"></td>
+                                                        <td class="text-center IGSTAmount">${data.taxes.taxSplit[2].taxPerc}%</td>
+                                                        <td class="text-right IGSTRATE">${data.taxes.taxSplit[2].taxPerc}</td>
+                                                    </tr>
+                                                    <tr class="text-right">
+                                                        <td class="table-total"><strong>Total</strong></td>
+                                                        <td class="text-center"></td>
+                                                        <td class="text-center"></td>
+                                                        <td class="text-center"></td>
+                                                        <td class="text-right table-total">
+                                                            <strong>${data.taxes.totalTaxAmount}</strong> </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <address>
+                                            <h3>Terms & Conditions :-</h3>
+                                            <ol style="padding-left:30px;">
+                                                <li>Goods once sold will not be returned.</li>
+                                                <li>Any dispute shall be subject to Mumbai jurisdiction.</li>
+                                                <li>Additional Payment gateway surcharge might be levied by the partner.</li>
+                                            </ol> Authorized Signatory <h3>GSTIN:-</h3> 27AATCA3030A1Z3
+                                        </address>
+                                    </div>
+                                    <hr />
+                                    <div class="row">
+                                        <div class="end text-center">
+                                            <p>This is computer generated invoice. If you have any questions concerning this invoice
+                                                , contact</p>
+                                        </div>
+                                        <div class="text-center"> <a href="mailto:hey@fintapp.in">hey@fintapp.in</a> </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                </script>
+            </body>
+        </html>
+    `;
+};

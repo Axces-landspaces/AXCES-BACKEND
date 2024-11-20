@@ -1,0 +1,413 @@
+import fs from "fs";
+import PDFDocument from "pdfkit";
+import path from "path";
+import { v2 as cloudinary } from "cloudinary";
+import { fileURLToPath } from "url";
+
+// Configuration
+const COLORS = {
+  GREEN: "#58AC64",
+  BLACK: "#000000",
+  GRAY: "#444444",
+  HR_COLOR: "#aaaaaa",
+};
+
+const FONTS = {
+  REGULAR: "Helvetica",
+  BOLD: "Helvetica-Bold",
+};
+
+// Cloudinary setup
+const setupCloudinary = () => {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME || "djzioqqsx",
+    api_key: process.env.CLOUDINARY_API_KEY || "716392398291865",
+    api_secret:
+      process.env.CLOUDINARY_API_SECRET || "Wxm0N56ytdW_JAkeYheARTZuJcw",
+  });
+};
+
+// Helper functions
+const generateHr = (doc, y) => {
+  doc
+    .strokeColor(COLORS.HR_COLOR)
+    .lineWidth(1)
+    .moveTo(20, y)
+    .lineTo(580, y)
+    .stroke();
+};
+
+const generateTableRow = (
+  doc,
+  y,
+  item,
+  description,
+  unitCost,
+  quantity,
+  lineTotal
+) => {
+  doc
+    .text(item, 25, y)
+    .text(description, 120, y)
+    .text(unitCost, 170, y, { width: 90, align: "right" })
+    .text(quantity, 280, y, { width: 130, align: "right" })
+    .text(lineTotal, 0, y, { align: "right" });
+};
+
+// Invoice sections
+const generateHeader = (doc, invoice) => {
+  doc
+    .fontSize(20)
+    .text("Invoice", 20, 20)
+    .fillColor(COLORS.GRAY)
+    .fontSize(10)
+    .text(`Order ${invoice.invoiceNumber}`, 20, 39);
+
+  generateHr(doc, 60);
+  doc.moveDown();
+};
+
+const generateCustomerInformation = (doc, invoice) => {
+  const { userInfo } = invoice;
+  let yPosition = 80;
+
+  // Company Information
+  doc
+    .fontSize(15)
+    .font(FONTS.BOLD)
+    .fillColor(COLORS.GREEN)
+    .text("Sold by", 20, yPosition)
+    .fillColor(COLORS.BLACK)
+    .fontSize(10)
+    .text("Augmont Goldtech Private Limited", 20, yPosition + 18)
+    .font(FONTS.REGULAR);
+
+  // Company Address
+  const companyAddress = [
+    "(Formerly known as Augmont Precious Metals Private Limited)",
+    "Address: 504,5th Floor,Trade Link,E wing,Kamala Mills",
+    "Compound,Lower Parel,Mumbai,Maharashtra",
+    "400013",
+  ];
+
+  let addressY = yPosition + 50;
+  companyAddress.forEach((line) => {
+    doc.text(line, 20, addressY);
+    addressY += 15;
+  });
+
+  // Invoice Details
+  doc
+    .text("Original for recipient", 480, yPosition)
+    .font(FONTS.BOLD)
+    .fontSize(19)
+    .text("TAX INVOICE", 453, yPosition + 22)
+    .fontSize(15)
+    .fillColor(COLORS.GREEN)
+    .text("INVOICE :", 500, yPosition + 70)
+    .font(FONTS.REGULAR)
+    .fillColor(COLORS.BLACK)
+    .fontSize(10)
+    .text(invoice.invoiceNumber, 513, yPosition + 90)
+    .font(FONTS.BOLD)
+    .fontSize(15)
+    .fillColor(COLORS.GREEN)
+    .text("DATE :", 525, yPosition + 120)
+    .font(FONTS.REGULAR)
+    .fillColor(COLORS.BLACK)
+    .fontSize(10)
+    .text(invoice.invoiceDate, 479, yPosition + 140);
+
+  // Customer Information
+  const customerY = yPosition + 200;
+  doc
+    .fontSize(15)
+    .font(FONTS.BOLD)
+    .fillColor(COLORS.GREEN)
+    .text("Customer Address", 20, customerY)
+    .fillColor(COLORS.BLACK)
+    .fontSize(10)
+    .text(userInfo.name, 20, customerY + 20)
+    .text(`${userInfo.pincode}-${userInfo.state}, India`, 20, customerY + 35)
+    .text(userInfo.address, 20, customerY + 50)
+    .text(userInfo.email, 20, customerY + 65)
+    .text(userInfo.mobileNumber, 20, customerY + 80);
+
+  doc.moveDown();
+};
+
+const generateInvoiceTable = (doc, invoice) => {
+  const tableTop = 440;
+
+  // Table Header
+  doc.font(FONTS.BOLD).fontSize(15).fillColor(COLORS.GREEN);
+
+  generateTableRow(
+    doc,
+    tableTop,
+    "Description",
+    "HSN Code",
+    "Gram",
+    "Rate/gm (INR)",
+    "Amount (INR)"
+  );
+
+  generateHr(doc, tableTop + 20);
+  doc.font(FONTS.REGULAR).fillColor(COLORS.BLACK);
+
+  // Table Content
+  let position = tableTop + 30;
+  generateTableRow(
+    doc,
+    position,
+    `${invoice.metalType} ${invoice.karat} ${invoice.purity}`,
+    invoice.hsnCode,
+    invoice.quantity,
+    `${invoice.rate}(INR/gm)`,
+    invoice.grossAmount
+  );
+
+  // Totals
+  position += 27;
+  generateTableRow(
+    doc,
+    position,
+    "Net Total",
+    "",
+    invoice.quantity,
+    "",
+    invoice.grossAmount
+  );
+
+  // Taxes
+  invoice.taxes.taxSplit.forEach((tax, index) => {
+    position += 30;
+    generateTableRow(
+      doc,
+      position,
+      ["CGST", "SGST", "IGST"][index],
+      "",
+      "",
+      `${tax.taxPerc}%`,
+      tax.taxAmount
+    );
+  });
+
+  generateHr(doc, position + 20);
+  position += 30;
+  generateTableRow(doc, position, "Total", "", "", "", invoice.netAmount);
+};
+
+const generateFooter = (doc) => {
+  const footerY = 620;
+
+  // Terms & Conditions
+  doc
+    .fontSize(15)
+    .font(FONTS.BOLD)
+    .fillColor(COLORS.GREEN)
+    .text("Terms & Conditions :-", 20, footerY)
+    .fillColor(COLORS.BLACK)
+    .fontSize(10)
+    .font(FONTS.REGULAR);
+
+  const terms = [
+    "1. Goods once sold will not be returned.",
+    "2. Any dispute shall be subject to Mumbai jurisdiction.",
+    "3. Additional Payment gateway surcharge might be levied by the partner.",
+  ];
+
+  let termsY = footerY + 20;
+  terms.forEach((term) => {
+    doc.text(term, 23, termsY);
+    termsY += 15;
+  });
+
+  // Footer text
+  generateHr(doc, 760);
+  doc
+    .fontSize(10)
+    .text(
+      "This is computer generated invoice. If you have any questions concerning this invoice, contact",
+      50,
+      770,
+      { align: "center", width: 500 }
+    )
+    .fillColor("blue")
+    .text("hey@fintapp.in", 50, 790, { align: "center", width: 500 });
+};
+
+const debugLog = (message, ...args) => {
+  console.log(`[DEBUG] ${message}`, ...args);
+};
+
+// Main functions
+const createInvoice = async (invoiceData, filePath) => {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({ size: "A4", margin: 20 });
+      const writeStream = fs.createWriteStream(filePath);
+
+      // Add more comprehensive error logging
+      writeStream.on("error", (err) => {
+        debugLog("Write Stream Error:", err);
+        reject(err);
+      });
+
+      doc.on("error", (err) => {
+        debugLog("PDF Document Error:", err);
+        reject(err);
+      });
+
+      // Validate invoice data before generation
+      if (!invoiceData || !invoiceData.invoiceNumber) {
+        const validationError = new Error("Invalid invoice data");
+        debugLog("Validation Error:", validationError);
+        reject(validationError);
+        return;
+      }
+
+      doc.pipe(writeStream);
+
+      generateHeader(doc, invoiceData);
+      generateCustomerInformation(doc, invoiceData);
+      generateInvoiceTable(doc, invoiceData);
+      generateFooter(doc);
+
+      doc.fontSize(10);
+      doc.text(" ", { continued: true }); // Add a tiny space to force rendering
+
+      doc.end();
+
+      writeStream.on("finish", () => {
+        const stats = fs.statSync(filePath);
+        debugLog("PDF File Stats:", {
+          size: stats.size,
+          path: filePath,
+        });
+
+        if (stats.size === 0) {
+          const sizeError = new Error("Generated PDF is empty");
+          debugLog("Empty PDF Error:", sizeError);
+          reject(sizeError);
+        } else {
+          resolve(filePath);
+        }
+      });
+      writeStream.on("error", reject);
+    } catch (error) {
+      debugLog("Overall PDF Generation Error:", error);
+      reject(error);
+    }
+  });
+};
+
+const uploadToCloudinary = async (filePath) => {
+  try {
+    if (!filePath) throw new Error("No file path provided");
+
+    // Verify file exists and has content before upload
+    const stats = fs.statSync(filePath);
+    debugLog("Pre-Upload File Stats:", {
+      size: stats.size,
+      path: filePath,
+    });
+
+    if (stats.size === 0) {
+      throw new Error("Cannot upload empty file");
+    }
+
+    setupCloudinary();
+
+    const response = await cloudinary.uploader.upload(filePath, {
+      resource_type: "auto",
+      folder: "invoices",
+      pages: true,
+    });
+
+    console.log({ response });
+    debugLog("Cloudinary Upload Response:", {
+      url: response.url,
+      pages: response.pages,
+      format: response.format,
+    });
+
+    return response.url;
+  } catch (error) {
+    throw new Error(`Cloudinary upload failed: ${error.message}`);
+  } finally {
+    // Clean up the local file
+    if (filePath && fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+  }
+};
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+export const generateAndUploadInvoice = async (invoiceData) => {
+  try {
+    const filename = `invoice_${Date.now()}.pdf`;
+    const filePath = path.join(__dirname, "assets", filename);
+
+    // Ensure assets directory exists
+    const assetsDir = path.join(__dirname, "assets");
+    if (!fs.existsSync(assetsDir)) {
+      fs.mkdirSync(assetsDir, { recursive: true });
+    }
+
+    // Create invoice PDF
+    const generateFilePath = await createInvoice(invoiceData, filePath);
+    // Upload to Cloudinary
+    const cloudinaryUrl = await uploadToCloudinary(generateFilePath);
+
+    return {
+      success: true,
+      url: cloudinaryUrl,
+    };
+  } catch (error) {
+    debugLog("Overall Generation and upload error", error);
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+};
+
+const invoiceData = {
+  invoiceNumber: "INV001",
+  invoiceDate: "2024-03-19",
+  metalType: "Gold",
+  karat: "24K",
+  purity: "99.9%",
+  hsnCode: "123456",
+  quantity: 10,
+  rate: 5000,
+  grossAmount: 32414,
+  taxes: {
+    taxSplit: [
+      { taxPerc: 2.5, taxAmount: 810.35 },
+      { taxPerc: 2.5, taxAmount: 810.35 },
+      { taxPerc: 5, taxAmount: 1620.7 },
+    ],
+  },
+  netAmount: 36055.4,
+  userInfo: {
+    name: "John Doe",
+    address: "123, Main Street",
+    pincode: "400001",
+    state: "Maharashtra",
+    email: "johndoe@gmail.com",
+    mobileNumber: 234234234,
+  },
+};
+
+console.log("dsfsf");
+generateAndUploadInvoice(invoiceData)
+  .then((data) => {
+    console.log(data);
+  })
+  .catch((error) => {
+    console.error(error);
+  });
