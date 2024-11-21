@@ -13,6 +13,7 @@ import {
   updateDefaultCoinValues,
   updatePropertyAndContractCharges,
   generateExcelFiles,
+  viewAllTransactions,
 } from "../controllers/admin.controller.js";
 import { verifyAdminToken } from "../middlewares/verifyAdmin.middleware.js";
 
@@ -25,6 +26,8 @@ router.post("/signupAdmin", signinAdmin);
 
 // Get All Users
 router.get("/users", verifyAdminToken, getAllUsers);
+
+router.get("/transactions", verifyAdminToken, viewAllTransactions);
 
 router.get("/dashboard", verifyAdminToken, adminDashboard);
 

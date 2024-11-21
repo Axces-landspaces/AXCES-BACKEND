@@ -3,8 +3,8 @@ import User from "../models/user.model.js";
 import Logs from "../models/logs.model.js";
 import crypto from "crypto";
 import Razorpay from "razorpay";
-import mongoose from "mongoose";
 import { Transactions } from "../models/transaction.model.js";
+import { generateAndUploadInvoice } from "../utils/invoiceUpload.js";
 
 // Get user's coin balance
 export const getBalance = async (req, res, next) => {
@@ -32,9 +32,7 @@ export const getBalance = async (req, res, next) => {
     next(error);
   }
 };
-
-// Recharge user's coins
-// this is perfect no problem in this
+// Recharge user's coins --- this is perfect no problem in this
 export const rechargeCoins = async (req, res, next) => {
   const razorpay = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID,
@@ -63,6 +61,7 @@ export const rechargeCoins = async (req, res, next) => {
         userId: userId,
         name: user.name,
         email: user.email,
+        number: user.number,
       },
       partial_payment: false,
       payment_capture: 1, // this is mandatory
@@ -123,9 +122,13 @@ export const checkStatus = async (req, res) => {
     }
 
     if (order.status === "paid") {
+      const transaction = await Transactions.findOne({ orderId: order.id });
+      console.log({ transaction });
+
       return res.status(200).json({
         paid: true,
         order,
+        invoice_download_url: transaction.invoice_url,
         message: "Order is paid and successful",
       });
     } else if (order.status === "attempted") {
@@ -219,7 +222,6 @@ export const validateRazorpay = async (req, res, next) => {
 export const razorpayWebhook = async (req, res) => {
   console.log({ req: req.body });
 
-  let session;
   try {
     const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
     const webhookSignature = req.headers["x-razorpay-signature"];
@@ -244,7 +246,12 @@ export const razorpayWebhook = async (req, res) => {
 
     const paymentEntity = payload?.payment?.entity;
     const userId = paymentEntity?.notes?.userId;
-    const { order_id, id, amount } = paymentEntity;
+    const { order_id, id, amount, notes, method, created_at } = paymentEntity;
+    const { name, email, number } = notes;
+
+    const invoice_date = new Date(created_at * 1000)
+      .toISOString()
+      .split("T")[0];
 
     if (event === "payment.captured") {
       // update the user balance
@@ -256,9 +263,6 @@ export const razorpayWebhook = async (req, res) => {
         razorpay_payment_id: id,
         coinsToCredit,
       });
-      // transactions here
-      // session = await mongoose.startSession();
-      // session.startTransaction();
 
       const coins = await Coins.findOneAndUpdate(
         { userId: userId },
@@ -278,10 +282,41 @@ export const razorpayWebhook = async (req, res) => {
       );
       console.log({ coins });
 
+      // generate the invoice
+      // update the transaction status
+      const invoiceData = {
+        invoiceNumber: id,
+        invoiceDate: invoice_date,
+        metalType: "Gold",
+        karat: "24K",
+        purity: "99.9%",
+        hsnCode: "123456",
+        quantity: 10,
+        rate: 5000,
+        grossAmount: 32414,
+        taxes: {
+          taxSplit: [
+            { taxPerc: 2.5, taxAmount: 810.35 },
+            { taxPerc: 2.5, taxAmount: 810.35 },
+            { taxPerc: 5, taxAmount: 1620.7 },
+          ],
+        },
+        netAmount: 36055.4,
+        userInfo: {
+          name: name,
+          email: email,
+          number: number,
+        },
+      };
+
+      const invoice = await generateAndUploadInvoice(invoiceData);
+      console.log({ invoice });
+
       const success = await Transactions.findOneAndUpdate(
         { orderId: order_id },
         {
           status: "success",
+          invoice_url: invoice.url,
           processedAt: new Date(),
         },
         { new: true }
@@ -297,8 +332,7 @@ export const razorpayWebhook = async (req, res) => {
         action: "captured",
       });
       console.log({ logs });
-      // await session.commitTransaction();
-    } else {
+    } else if (event === "payment.failed") {
       console.log("Payment failed");
       console.log({ order_id });
       const txnFailed = await Transactions.findOneAndUpdate(
@@ -310,17 +344,15 @@ export const razorpayWebhook = async (req, res) => {
         { new: true }
       );
       console.log({ txnFailed });
+    } else if (event === "invoice.paid") {
+      console.log("Invoice paid");
     }
-
     // this is mandatory, to tell the razorpay backend to
     // know that you captured the request
     return res.status(200).json({ received: true });
   } catch (error) {
-    // await session.abortTransaction();
     console.error("Webhook error: ", error);
     res.status(500).json({ error: "Webhook processing failed" });
-  } finally {
-    // await session.endSession();
   }
 };
 
@@ -363,5 +395,5 @@ export const userTransactions = async (req, res) => {
 // }
 
 export function calculateCoins(amount) {
-  return Math.floor(amount / 2); // 1/2 of the payment amount
+  return Math.floor(amount);
 }

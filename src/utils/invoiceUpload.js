@@ -17,13 +17,13 @@ const FONTS = {
   BOLD: "Helvetica-Bold",
 };
 
-// Cloudinary setup
+// Cloudinary setup -- remove env keys from here
 const setupCloudinary = () => {
   cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME || "djzioqqsx",
-    api_key: process.env.CLOUDINARY_API_KEY || "716392398291865",
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME || "dxxqpchgb",
+    api_key: process.env.CLOUDINARY_API_KEY || "685724243457544",
     api_secret:
-      process.env.CLOUDINARY_API_SECRET || "Wxm0N56ytdW_JAkeYheARTZuJcw",
+      process.env.CLOUDINARY_API_SECRET || "y_w_JPDLaXN59gihOP1kx1pUkMI",
   });
 };
 
@@ -304,13 +304,25 @@ const createInvoice = async (invoiceData, filePath) => {
 
 const uploadToCloudinary = async (filePath) => {
   try {
-    if (!filePath) throw new Error("No file path provided");
+    if (!filePath) {
+      throw new Error("No file path provided");
+    }
+    const normalizedPath = path.normalize(filePath);
+
+    try {
+      fs.accessSync(normalizedPath, fs.constants.R_OK);
+    } catch (error) {
+      throw new Error(`Cannot read file: ${normalizedPath}`);
+    }
 
     // Verify file exists and has content before upload
-    const stats = fs.statSync(filePath);
-    debugLog("Pre-Upload File Stats:", {
-      size: stats.size,
-      path: filePath,
+    const stats = fs.statSync(normalizedPath);
+
+    console.log("File Details:", {
+      path: normalizedPath,
+      size: stats.size + " bytes",
+      isFile: stats.isFile(),
+      lastModified: stats.mtime,
     });
 
     if (stats.size === 0) {
@@ -318,24 +330,38 @@ const uploadToCloudinary = async (filePath) => {
     }
 
     setupCloudinary();
+    console.log({ filePath });
 
-    const response = await cloudinary.uploader.upload(filePath, {
-      resource_type: "auto",
+    const response = await cloudinary.uploader.upload(normalizedPath, {
+      resource_type: "auto", // Use 'raw' for PDFs
       folder: "invoices",
-      pages: true,
+      use_filename: true,
+      unique_filename: true,
+      overwrite: false,
+      tags: ["invoice", "pdf"],
     });
 
     console.log({ response });
-    debugLog("Cloudinary Upload Response:", {
+    console.log("Cloudinary Upload Complete:", {
       url: response.url,
-      pages: response.pages,
+      publicId: response.public_id,
       format: response.format,
+      bytes: response.bytes,
+      resourceType: response.resource_type,
+      secureUrl: response.secure_url,
     });
 
     return response.url;
   } catch (error) {
+    console.error("Cloudinary Upload Error:", {
+      message: error.message,
+      name: error.name,
+      stack: error.stack,
+    });
+
     throw new Error(`Cloudinary upload failed: ${error.message}`);
   } finally {
+    console.log("cleanup");
     // Clean up the local file
     if (filePath && fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
@@ -406,7 +432,7 @@ const invoiceData = {
 console.log("dsfsf");
 generateAndUploadInvoice(invoiceData)
   .then((data) => {
-    console.log(data);
+    console.log({data});
   })
   .catch((error) => {
     console.error(error);

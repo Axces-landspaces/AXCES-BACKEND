@@ -8,6 +8,7 @@ import adminRoutes from "./routes/admin.route.js";
 import autoSuggestRoutes from "./routes/autosuggestion.js";
 import dotenv from "dotenv";
 import bodyParser from "body-parser";
+import { startExpiryCheck } from "./models/transaction.model.js";
 
 dotenv.config();
 
@@ -60,6 +61,7 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
+  startExpiryCheck();
   console.log(`Server is running on port ${PORT}`);
 });
 

@@ -21,6 +21,9 @@ const TransactionSchema = new mongoose.Schema({
     required: true,
     min: 0,
   },
+  invoice_url: {
+    type: String,
+  },
   status: {
     type: String,
     enum: ["processing", "success", "failed"],
@@ -62,14 +65,14 @@ TransactionSchema.statics.updateExpired = async function () {
     }
   );
 
-  return result.modifiedCount; 
+  return result.modifiedCount;
 };
 
 // Create a function to start the background task
 let intervalId = null;
 
 export const startExpiryCheck = () => {
-  if (intervalId) return; 
+  if (intervalId) return;
   intervalId = setInterval(async () => {
     try {
       const updatedCount = await Transactions.updateExpired();
@@ -79,7 +82,7 @@ export const startExpiryCheck = () => {
     } catch (error) {
       console.error("Error updating expired transactions:", error);
     }
-  }, 5 * 60 * 1000); 
+  }, 15 * 60 * 1000);
 };
 
 // Create a function to stop the background task
@@ -94,7 +97,6 @@ export const stopExpiryCheck = () => {
 TransactionSchema.methods.checkExpiry = async function () {
   if (this.status === "processing" && this.expiresAt <= new Date()) {
     this.status = "failed";
-    this.failureReason = "expired";
     await this.save();
     return true;
   }

@@ -9,6 +9,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
 import pricesModel from "../models/prices.model.js";
+import { Transactions } from "../models/transaction.model.js";
 
 const HARD_CODED_SECRET_TOKEN = "ADMIN"; // Hard-coded token for verification
 
@@ -782,7 +783,7 @@ export const adminDashboard = async (req, res, next) => {
         },
       },
     ]);
- 
+
     res.status(200).json({
       data: {
         totalUsers,
@@ -909,4 +910,291 @@ export const generateExcelFiles = async (req, res, next) => {
   );
 
   res.send();
+};
+
+async function generateExcelTransaction(transaction) {
+  const workbook = new excelJs.Workbook();
+  const worksheet = workbook.addWorksheet("Transactions");
+
+  worksheet.columns = [
+    { header: "User Id", key: "userId", width: 30 },
+    { header: "Order Id", key: "orderId", width: 30 },
+    { header: "Amount", key: "amount", width: 50 },
+    { header: "Status", key: "status", width: 30 },
+    { header: "Created At", key: "createdAt", width: 30 },
+    { header: "Name", key: "name", width: 20 },
+    { header: "Email", key: "email", width: 30 },
+    { header: "Phone", key: "phone", width: 15 },
+    {
+      header: "Profile Picture",
+      key: "profilepictures",
+      width: 45,
+    },
+  ];
+  // Style the header row
+  worksheet.getRow(1).font = { bold: true };
+  worksheet.getRow(1).fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "FFE0E0E0" },
+  };
+
+  // add data rows
+  transaction.forEach((transaction) => {
+    worksheet.addRow({
+      userId: transaction.userId,
+      orderId: transaction.orderId,
+      paymentId: transaction.paymentId,
+      amount: transaction.amount,
+      status: transaction.status,
+      createdAt: transaction.createdAt,
+      name: transaction.name,
+      email: transaction.email,
+      phone: transaction.phone,
+      profilepictures: transaction.profilepictures,
+    });
+  });
+
+  return await workbook.xlsx.writeBuffer();
+}
+
+export const viewAllTransactions = async (req, res, next) => {
+  try {
+    const { excel_download, filters } = req.body;
+    // Fetch properties
+    const exactQuery = {};
+    // Apply filters for exact match query
+    if (filters) {
+      if (filters.dateRange) {
+        const { startDate, endDate } = filters.dateRange;
+        if (startDate && endDate) {
+          const start = new Date(startDate);
+          start.setHours(0, 0, 0, 0);
+
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+
+          exactQuery.createdAt = {
+            $gte: start, // Greater than or equal to start date
+            $lte: end, // Less than or equal to end date
+          };
+        }
+      }
+    }
+
+    const enumFields = {
+      status: ["processing", "success", "failed"],
+    };
+
+    Object.entries(enumFields).forEach(([field, validValues]) => {
+      if (filters[field] && validValues.includes(filters[field])) {
+        exactQuery[field] = filters[field];
+      }
+    });
+
+    console.log(exactQuery);
+    const exactTransaction = await Transactions.find(exactQuery).lean();
+
+    const transactionWithUserDetails = await Promise.all(
+      exactTransaction.map(async (transaction) => {
+        // Sanitize owner_id to remove any newlines or extra spaces
+        const sanitizedOwnerId = transaction?.userId?.trim();
+
+        // Fetch user details based on the sanitized owner_id
+        const ownerDetails = await User.findOne(
+          { _id: sanitizedOwnerId },
+          "name email number profilePicture"
+        );
+
+        return {
+          ...transaction, // Spread the property details
+          name: ownerDetails?.name, // Attach the owner's details
+          phone: ownerDetails?.number,
+          email: ownerDetails?.email,
+          profilepictures: ownerDetails?.profilePicture,
+        };
+      })
+    );
+
+    if (excel_download) {
+      const excelBuffer = await generateExcelTransaction(
+        transactionWithUserDetails
+      );
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      res.setHeader(
+        "Content-Disposition",
+        "attachment; filename=transactions.xlsx"
+      );
+      return res.status(200).send(excelBuffer);
+    }
+
+    return res.status(200).json({
+      code: 200,
+      data: transactionWithUserDetails,
+      message: "Properties fetched successfully",
+    });
+  } catch (error) {
+    console.error("Error fetching properties: ", error);
+    next(error);
+  }
+};
+
+export const searchProperties = async (req, res) => {
+  try {
+    // Destructure query parameters
+    const {
+      keyword = "",
+      page = 1,
+      limit = 10,
+      sortBy = "createdAt",
+      sortOrder = "desc",
+    } = req.query;
+
+    // Validate keyword length to prevent overly broad searches
+    if (keyword.length < 2) {
+      return res.status(400).json({
+        success: false,
+        message: "Keyword must be at least 2 characters long",
+      });
+    }
+
+    // Create a search query focusing on title, description, and address
+    const searchQuery = {
+      $or: [
+        { title: { $regex: keyword, $options: "i" } },
+        { description: { $regex: keyword, $options: "i" } },
+        { address: { $regex: keyword, $options: "i" } },
+      ],
+    };
+
+    // Validate sort parameters
+    const validSortFields = ["createdAt", "title"];
+    const sanitizedSortBy = validSortFields.includes(sortBy)
+      ? sortBy
+      : "createdAt";
+    const sanitizedSortOrder = sortOrder === "asc" ? 1 : -1;
+
+    // Pagination
+    const pageNumber = Math.max(1, Number(page));
+    const itemsPerPage = Math.max(1, Number(limit));
+    const skip = (pageNumber - 1) * itemsPerPage;
+
+    // Perform search with pagination and sorting
+    const [properties, total] = await Promise.all([
+      Property.find(searchQuery)
+        .select("-__v") // Exclude version key
+        .sort({ [sanitizedSortBy]: sanitizedSortOrder })
+        .skip(skip)
+        .limit(itemsPerPage)
+        .lean(), // Convert to plain JavaScript object for better performance
+      Property.countDocuments(searchQuery),
+    ]);
+
+    // Calculate total pages
+    const totalPages = Math.ceil(total / itemsPerPage);
+
+    // Return paginated results
+    res.status(200).json({
+      success: true,
+      page: pageNumber,
+      totalPages,
+      totalProperties: total,
+      propertiesPerPage: itemsPerPage,
+      properties: properties.map((property) => ({
+        ...property,
+        // Highlight matching keywords in results
+        highlightedTitle: highlightKeyword(property.title, keyword),
+        highlightedDescription: highlightKeyword(property.description, keyword),
+        highlightedAddress: highlightKeyword(property.address, keyword),
+      })),
+    });
+  } catch (error) {
+    console.error("Search Properties Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error searching properties",
+      error: error.message,
+    });
+  }
+};
+
+// Utility function to highlight matching keywords
+function highlightKeyword(text, keyword) {
+  if (!text || !keyword) return text;
+
+  // Escape special regex characters
+  const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  // Create a case-insensitive regex
+  const regex = new RegExp(`(${escapedKeyword})`, "gi");
+
+  // Replace matches with highlighted version
+  return text.replace(regex, "<mark>$1</mark>");
+}
+
+// Additional search method with more advanced filtering
+export const advancedSearch = async (req, res) => {
+  try {
+    const {
+      keyword = "",
+      exactMatch = false,
+      page = 1,
+      limit = 10,
+    } = req.query;
+
+    // Construct search query based on exact match or partial match
+    let searchQuery;
+    if (exactMatch) {
+      // Exact match search
+      searchQuery = {
+        $or: [
+          { title: keyword },
+          { description: keyword },
+          { address: keyword },
+        ],
+      };
+    } else {
+      // Partial match with word boundary for more precise matching
+      searchQuery = {
+        $or: [
+          { title: { $regex: `\\b${keyword}\\b`, $options: "i" } },
+          { description: { $regex: `\\b${keyword}\\b`, $options: "i" } },
+          { address: { $regex: `\\b${keyword}\\b`, $options: "i" } },
+        ],
+      };
+    }
+
+    // Pagination
+    const pageNumber = Math.max(1, Number(page));
+    const itemsPerPage = Math.max(1, Number(limit));
+    const skip = (pageNumber - 1) * itemsPerPage;
+
+    // Perform search
+    const [properties, total] = await Promise.all([
+      Property.find(searchQuery).skip(skip).limit(itemsPerPage),
+      Property.countDocuments(searchQuery),
+    ]);
+
+    // Calculate total pages
+    const totalPages = Math.ceil(total / itemsPerPage);
+
+    res.status(200).json({
+      success: true,
+      page: pageNumber,
+      totalPages,
+      totalProperties: total,
+      propertiesPerPage: itemsPerPage,
+      properties,
+    });
+  } catch (error) {
+    console.error("Advanced Search Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error in advanced search",
+      error: error.message,
+    });
+  }
 };
