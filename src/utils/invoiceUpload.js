@@ -42,16 +42,16 @@ const generateTableRow = (
   y,
   item,
   description,
-  unitCost,
   quantity,
+  unitPrice,
   lineTotal
 ) => {
   doc
     .text(item, 25, y)
     .text(description, 120, y)
-    .text(unitCost, 170, y, { width: 90, align: "right" })
-    .text(quantity, 280, y, { width: 130, align: "right" })
-    .text(lineTotal, 0, y, { align: "right" });
+    .text(quantity, 260, y, { width: 110, align: "right" })
+    .text(unitPrice, 390, y, { width: 100, align: "right" })
+    .text(lineTotal, 500, y, { align: "right" });
 };
 
 // Invoice sections
@@ -61,7 +61,7 @@ const generateHeader = (doc, invoice) => {
     .text("Invoice", 20, 20)
     .fillColor(COLORS.GRAY)
     .fontSize(10)
-    .text(`Order ${invoice.invoiceNumber}`, 20, 39);
+    .text(`${invoice.invoiceNumber}`, 20, 39);
 
   generateHr(doc, 60);
   doc.moveDown();
@@ -79,22 +79,22 @@ const generateCustomerInformation = (doc, invoice) => {
     .text("Sold by", 20, yPosition)
     .fillColor(COLORS.BLACK)
     .fontSize(10)
-    .text("Augmont Goldtech Private Limited", 20, yPosition + 18)
+    .text("Axces Properties Private Limited", 20, yPosition + 18)
     .font(FONTS.REGULAR);
 
-  // Company Address
-  const companyAddress = [
-    "(Formerly known as Augmont Precious Metals Private Limited)",
-    "Address: 504,5th Floor,Trade Link,E wing,Kamala Mills",
-    "Compound,Lower Parel,Mumbai,Maharashtra",
-    "400013",
-  ];
+  // // Company Address
+  // const companyAddress = [
+  //   "(Formerly known as Augmont Precious Metals Private Limited)",
+  //   "Address: 504,5th Floor,Trade Link,E wing,Kamala Mills",
+  //   "Compound,Lower Parel,Mumbai,Maharashtra",
+  //   "400013",
+  // ];
 
-  let addressY = yPosition + 50;
-  companyAddress.forEach((line) => {
-    doc.text(line, 20, addressY);
-    addressY += 15;
-  });
+  // let addressY = yPosition + 50;
+  // companyAddress.forEach((line) => {
+  //   doc.text(line, 20, addressY);
+  //   addressY += 15;
+  // });
 
   // Invoice Details
   doc
@@ -104,22 +104,22 @@ const generateCustomerInformation = (doc, invoice) => {
     .text("TAX INVOICE", 453, yPosition + 22)
     .fontSize(15)
     .fillColor(COLORS.GREEN)
-    .text("INVOICE :", 500, yPosition + 70)
+    .text("INVOICE", 510, yPosition + 45)
     .font(FONTS.REGULAR)
     .fillColor(COLORS.BLACK)
     .fontSize(10)
-    .text(invoice.invoiceNumber, 513, yPosition + 90)
+    .text(invoice.invoiceNumber, 537, yPosition + 65)
     .font(FONTS.BOLD)
     .fontSize(15)
     .fillColor(COLORS.GREEN)
-    .text("DATE :", 525, yPosition + 120)
+    .text("DATE", 530, yPosition + 85)
     .font(FONTS.REGULAR)
     .fillColor(COLORS.BLACK)
     .fontSize(10)
-    .text(invoice.invoiceDate, 479, yPosition + 140);
+    .text(invoice.invoiceDate, 517, yPosition + 105);
 
   // Customer Information
-  const customerY = yPosition + 200;
+  const customerY = yPosition + 130;
   doc
     .fontSize(15)
     .font(FONTS.BOLD)
@@ -128,16 +128,74 @@ const generateCustomerInformation = (doc, invoice) => {
     .fillColor(COLORS.BLACK)
     .fontSize(10)
     .text(userInfo.name, 20, customerY + 20)
-    .text(`${userInfo.pincode}-${userInfo.state}, India`, 20, customerY + 35)
-    .text(userInfo.address, 20, customerY + 50)
-    .text(userInfo.email, 20, customerY + 65)
-    .text(userInfo.mobileNumber, 20, customerY + 80);
+    .text(userInfo.email, 20, customerY + 40)
+    .text(userInfo.number, 20, customerY + 60);
 
   doc.moveDown();
 };
 
+// const generateInvoiceTable = (doc, invoice) => {
+//   const tableTop = 350;
+
+//   // Table Header
+//   doc.font(FONTS.BOLD).fontSize(15).fillColor(COLORS.GREEN);
+
+//   generateTableRow(
+//     doc,
+//     tableTop,
+//     "Item",
+//     "Quantity",
+//     "Rate (INR)",
+//     "Amount (INR)"
+//   );
+
+//   generateHr(doc, tableTop + 20);
+//   doc.font(FONTS.REGULAR).fillColor(COLORS.BLACK);
+
+//   // Table Content
+//   let position = tableTop + 30;
+//   generateTableRow(
+//     doc,
+//     position,
+//     "Coins",
+//     invoice.quantity,
+//     invoice.rate,
+//     invoice.grossAmount
+//   );
+
+//   // Totals
+//   position += 27;
+//   generateTableRow(
+//     doc,
+//     position,
+//     "Net Total",
+//     "",
+//     invoice.quantity,
+//     "",
+//     invoice.grossAmount
+//   );
+
+//   // Taxes
+//   invoice.taxes.taxSplit.forEach((tax, index) => {
+//     position += 30;
+//     generateTableRow(
+//       doc,
+//       position,
+//       ["CGST", "SGST", "IGST"][index],
+//       "",
+//       "",
+//       `${tax.taxPerc}%`,
+//       tax.taxAmount
+//     );
+//   });
+
+//   generateHr(doc, position + 20);
+//   position += 30;
+//   generateTableRow(doc, position, "Total", "", "", "", invoice.netAmount);
+// };
+
 const generateInvoiceTable = (doc, invoice) => {
-  const tableTop = 440;
+  const tableTop = 350;
 
   // Table Header
   doc.font(FONTS.BOLD).fontSize(15).fillColor(COLORS.GREEN);
@@ -145,11 +203,11 @@ const generateInvoiceTable = (doc, invoice) => {
   generateTableRow(
     doc,
     tableTop,
+    "Item",
     "Description",
-    "HSN Code",
-    "Gram",
-    "Rate/gm (INR)",
-    "Amount (INR)"
+    "Quantity",
+    "Rate (INR)",
+    "Amount"
   );
 
   generateHr(doc, tableTop + 20);
@@ -160,10 +218,10 @@ const generateInvoiceTable = (doc, invoice) => {
   generateTableRow(
     doc,
     position,
-    `${invoice.metalType} ${invoice.karat} ${invoice.purity}`,
-    invoice.hsnCode,
+    "Coins",
+    "Platform Transaction Coins",
     invoice.quantity,
-    `${invoice.rate}(INR/gm)`,
+    invoice.rate,
     invoice.grossAmount
   );
 
@@ -198,8 +256,9 @@ const generateInvoiceTable = (doc, invoice) => {
   generateTableRow(doc, position, "Total", "", "", "", invoice.netAmount);
 };
 
+
 const generateFooter = (doc) => {
-  const footerY = 620;
+  const footerY = 650;
 
   // Terms & Conditions
   doc
@@ -212,8 +271,8 @@ const generateFooter = (doc) => {
     .font(FONTS.REGULAR);
 
   const terms = [
-    "1. Goods once sold will not be returned.",
-    "2. Any dispute shall be subject to Mumbai jurisdiction.",
+    "1. Coins once credited will not be returned.",
+    "2. Any dispute shall be subject to Bangalore jurisdiction.",
     "3. Additional Payment gateway surcharge might be levied by the partner.",
   ];
 
@@ -234,7 +293,7 @@ const generateFooter = (doc) => {
       { align: "center", width: 500 }
     )
     .fillColor("blue")
-    .text("hey@fintapp.in", 50, 790, { align: "center", width: 500 });
+    .text("contact@axces.in", 50, 790, { align: "center", width: 500 });
 };
 
 const debugLog = (message, ...args) => {
@@ -403,36 +462,30 @@ export const generateAndUploadInvoice = async (invoiceData) => {
 
 const invoiceData = {
   invoiceNumber: "INV001",
-  invoiceDate: "2024-03-19",
-  metalType: "Gold",
-  karat: "24K",
-  purity: "99.9%",
-  hsnCode: "123456",
-  quantity: 10,
-  rate: 5000,
-  grossAmount: 32414,
+  paymentId: "PAY001",
+  invoiceDate: "2023-03-10",
+  quantity: 100,
+  rate: 1,
+  grossAmount: 100,
   taxes: {
     taxSplit: [
-      { taxPerc: 2.5, taxAmount: 810.35 },
-      { taxPerc: 2.5, taxAmount: 810.35 },
-      { taxPerc: 5, taxAmount: 1620.7 },
+      { taxPerc: 2.5, taxAmount: 2.5 },
+      { taxPerc: 2.5, taxAmount: 2.5 },
+      { taxPerc: 5, taxAmount: 5 },
     ],
   },
-  netAmount: 36055.4,
+  netAmount: 110,
   userInfo: {
     name: "John Doe",
-    address: "123, Main Street",
-    pincode: "400001",
-    state: "Maharashtra",
-    email: "johndoe@gmail.com",
-    mobileNumber: 234234234,
+    email: "johndoe@example.com",
+    number: "+1 234 567 890",
   },
 };
 
 console.log("dsfsf");
 generateAndUploadInvoice(invoiceData)
   .then((data) => {
-    console.log({data});
+    console.log({ data });
   })
   .catch((error) => {
     console.error(error);

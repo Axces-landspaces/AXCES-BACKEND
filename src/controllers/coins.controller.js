@@ -284,7 +284,7 @@ export const razorpayWebhook = async (req, res) => {
 
       // generate the invoice
       // update the transaction status
-      const invoiceData = {
+      const invoiceDatad = {
         invoiceNumber: id,
         invoiceDate: invoice_date,
         metalType: "Gold",
@@ -306,6 +306,28 @@ export const razorpayWebhook = async (req, res) => {
           name: name,
           email: email,
           number: number,
+        },
+      };
+
+      const invoiceData = {
+        invoiceNumber: id,
+        paymentId: order_id,
+        invoiceDate: invoice_date,
+        quantity: 100,
+        rate: 1,
+        grossAmount: 100,
+        taxes: {
+          taxSplit: [
+            { taxPerc: 2.5, taxAmount: 2.5 },
+            { taxPerc: 2.5, taxAmount: 2.5 },
+            { taxPerc: 5, taxAmount: 5 },
+          ],
+        },
+        netAmount: 110,
+        userInfo: {
+          name: "John Doe",
+          email: "johndoe@example.com",
+          number: "+1 234 567 890",
         },
       };
 

@@ -489,3 +489,5 @@ export const invoiceComponent = (data) => {
         </html>
     `;
 };
+
+

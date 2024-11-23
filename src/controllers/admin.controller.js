@@ -829,9 +829,11 @@ export const updatePropertyAndContractCharges = async (req, res, next) => {
       updateFields.propertyContactCost = propertyContactCost;
     }
 
-    await Prices.updateOne({}, { $set: updateFields });
+    const charges = await Prices.updateOne({}, { $set: updateFields });
+    console.log((charges));
     res.status(200).json({
       message: "Property and Contact charges updated successfully",
+      charges,
     });
   } catch (error) {
     console.error("Error fetching dashboard data:", error);
