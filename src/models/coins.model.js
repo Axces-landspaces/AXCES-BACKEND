@@ -23,23 +23,43 @@ const CoinsSchema = new mongoose.Schema({
   },
   transactions: [
     {
+      transaction_id: {
+        type: String,
+        unique: true,
+      },
       amount: {
         type: Number,
         required: true,
       },
       razorpay_payment_id: {
         type: String,
-        // required: true,
       },
       type: {
         type: String,
-        enum: ["credit", "debit"],
+        enum: ["credit", "debit", "refund", "failed"],
         required: true,
       },
       description: {
         type: String,
-        enum: ["property_post", "owner_details", "coin_recharge"],
+        enum: [
+          "property_post",
+          "owner_details",
+          "coin_recharge",
+          "failed_transaction",
+          "service_cancellation",
+          "referral_bonus",
+        ],
         required: true,
+      },
+      balanceAfterDeduction: {
+        type: Number,
+      },
+      recharge_method: {
+        type: String,
+        enum: ["upi", "card", "netbanking", "wallet", "debit", "credit"],
+      },
+      download_invoice_url: {
+        type: String,
       },
       timestamp: {
         type: Date,

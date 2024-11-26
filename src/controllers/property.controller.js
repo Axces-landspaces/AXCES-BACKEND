@@ -6,9 +6,9 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { errorHandler } from "../utils/error.js";
 import { getDistance } from "geolib";
 import Prices from "../models/prices.model.js";
+import { generateAndUploadInvoice } from "../utils/invoiceUpload.js";
 
 export const postProperty = async (req, res, next) => {
-  // const owner_id = req.params.id;
   const owner_id = req.user.id;
   console.log("owner_id: ", owner_id, "typeof: ", typeof owner_id);
 
@@ -163,14 +163,11 @@ export const postProperty = async (req, res, next) => {
 
     // Fetch the default property post cost and user's coin balance
     const charges = await Prices.findOne({});
-    console.log({charges});
     const propertyPostCharges = charges.propertyPostCost;
-    console.log(propertyPostCharges);
-    console.log(typeof propertyPostCharges);
 
     let userCoins = await Coins.findOne({ userId: owner_id });
+    const user = await User.findById(owner_id);
 
-    console.log({ userCoins });
     if (!userCoins) {
       return next(errorHandler(402, res, "User coins entry not found"));
     }
@@ -179,22 +176,57 @@ export const postProperty = async (req, res, next) => {
       return next(errorHandler(402, res, "Insufficient balance"));
     }
     // Save the property and update user's coin balance
-    await property.save();
 
     userCoins.balance -= propertyPostCharges;
-    // this is the transaction history
+    // now generate the invoiceID
+    const transactionId = generateTransactionId();
+    const gstAmount = calculateGst(propertyPostCharges);
+    console.log({ gstAmount });
+
+    const invoiceData = {
+      invoiceNumber: transactionId,
+      paymentId: transactionId,
+      invoiceDate: getCurrentDate(),
+      quantity: propertyPostCharges,
+      rate: 1,
+      description: "Property Post Charges",
+      grossAmount: propertyPostCharges - gstAmount,
+      taxes: {
+        taxSplit: [
+          { taxPerc: 9, taxAmount: gstAmount / 2 },
+          { taxPerc: 9, taxAmount: gstAmount / 2 },
+        ],
+      },
+      netAmount: propertyPostCharges,
+      userInfo: {
+        name: user.name,
+        email: user.email,
+        number: user.number,
+      },
+    };
+
+    const invoiceUrl = await generateAndUploadInvoice(invoiceData);
+    console.log({ invoiceUrl });
+
     userCoins.transactions.push({
+      transaction_id: transactionId,
       amount: propertyPostCharges,
       description: "property_post",
       timestamp: new Date(),
       type: "debit",
+      download_invoice_url: invoiceUrl.url,
+      balanceAfterDeduction: userCoins.balance - propertyPostCharges,
     });
 
+    // generate the invoice
+
     await userCoins.save();
+    await property.save();
 
     res.status(201).json({
       code: 201,
       data: property,
+      download_invoice_url: invoiceUrl.url,
       message: "Property posted successfully",
     });
   } catch (error) {
@@ -848,7 +880,6 @@ export const contactOwner = async (req, res, next) => {
     // Fetch the default cost for contacting owner and user's coin balance
     const charges = await Prices.findOne({});
     const ownerDetailsCharges = charges.propertyContactCost;
-
     const userCoins = await Coins.findOne({ userId });
     if (!userCoins || userCoins.balance < ownerDetailsCharges) {
       return next(
@@ -859,8 +890,40 @@ export const contactOwner = async (req, res, next) => {
         )
       );
     }
+    const user = await User.findById(userId);
+
+    const transactionId = generateTransactionId();
+    const gstAmount = calculateGst(ownerDetailsCharges);
+
+    // Respond with owner's contact details
+    const invoiceData = {
+      invoiceNumber: transactionId,
+      paymentId: transactionId,
+      invoiceDate: getCurrentDate(),
+      quantity: ownerDetailsCharges,
+      rate: 1,
+      description: "Contact Owner Charges",
+      grossAmount: ownerDetailsCharges - gstAmount,
+      taxes: {
+        taxSplit: [
+          { taxPerc: 9, taxAmount: gstAmount / 2 },
+          { taxPerc: 9, taxAmount: gstAmount / 2 },
+        ],
+      },
+      netAmount: ownerDetailsCharges,
+      userInfo: {
+        name: user.name,
+        email: user.email,
+        number: user.number,
+      },
+    };
+
+    const invoiceUrl = await generateAndUploadInvoice(invoiceData);
 
     userCoins.transactions.push({
+      balanceAfterDeduction: userCoins.balance - ownerDetailsCharges,
+      download_invoice_url: invoiceUrl.url,
+      transaction_id: transactionId,
       amount: ownerDetailsCharges,
       description: "owner_details",
       timestamp: new Date(),
@@ -868,8 +931,8 @@ export const contactOwner = async (req, res, next) => {
     });
 
     userCoins.balance -= ownerDetailsCharges;
+
     await userCoins.save();
-    // Respond with owner's contact details
 
     const propertyOwnerId = property.owner_id;
     console.log({ propertyOwnerId });
@@ -883,8 +946,10 @@ export const contactOwner = async (req, res, next) => {
         owner_details: {
           owner_name: owner.name,
           contact_phone: owner.number,
+          contact_email: owner.email,
         },
       },
+      download_invoice_url: invoiceUrl.url,
       message: "Contact details retrieved successfully",
     });
   } catch (error) {
@@ -892,6 +957,13 @@ export const contactOwner = async (req, res, next) => {
     next(error);
   }
 };
+
+export function calculateGst(amount) {
+  const gst = 18;
+  const gstAmount = (gst / 100) * amount;
+  console.log(gstAmount);
+  return gstAmount.toPrecision(2);
+}
 
 export const addToWishlist = async (req, res, next) => {
   const { propertyId, action } = req.body;
@@ -969,3 +1041,18 @@ export const viewWishlist = async (req, res, next) => {
     next(error);
   }
 };
+
+function generateTransactionId() {
+  const timestamp = Date.now(); // Current timestamp in milliseconds
+  const randomStr = Math.random().toString(36).substring(2, 10); // Random alphanumeric string
+  return `TXN-${timestamp}-${randomStr}`; // Combine parts for the transaction ID
+}
+
+function getCurrentDate() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}

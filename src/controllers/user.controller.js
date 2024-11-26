@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 import { errorHandler } from "../utils/error.js";
 import dotenv from "dotenv";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import Prices from "../models/prices.model.js";
 dotenv.config();
 
 export const createProfile = async (req, res, next) => {
@@ -12,6 +13,10 @@ export const createProfile = async (req, res, next) => {
     const { number } = req.body;
     // Check if user exists with the given phone number
     let user = await User.findOne({ number });
+
+    const propertyContactAndPostCost = await Prices.findOne({}).select(
+      "propertyPostCost propertyContactCost"
+    );
 
     if (user) {
       // User exists, return user details with token
@@ -21,6 +26,7 @@ export const createProfile = async (req, res, next) => {
       return res.status(200).json({
         status: "success",
         data: { id: user._id, name: user.name, email: user.email, token },
+        propertyContactAndPostCost,
         message: "User found successfully",
       });
     } else {
@@ -65,6 +71,7 @@ export const createProfile = async (req, res, next) => {
           token,
           device_token,
         },
+        propertyContactAndPostCost,
         message: "User registered successfully",
       });
     }

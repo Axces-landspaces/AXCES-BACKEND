@@ -264,15 +264,44 @@ export const razorpayWebhook = async (req, res) => {
         coinsToCredit,
       });
 
+      const invoiceData = {
+        invoiceNumber: order_id,
+        paymentId: order_id,
+        invoiceDate: invoice_date,
+        quantity: amount / 100,
+        rate: 1,
+        description: "Coins Recharge",
+        grossAmount: amount / 100,
+        taxes: {
+          taxSplit: [
+            { taxPerc: 0, taxAmount: "0" },
+            { taxPerc: 0, taxAmount: "0" },
+          ],
+        },
+        netAmount: amount / 100,
+        userInfo: {
+          name: name,
+          email: email,
+          number: number,
+        },
+      };
+
+      const invoice = await generateAndUploadInvoice(invoiceData);
+      console.log({ invoice });
+      const transactionId = generateTransactionId();
+
       const coins = await Coins.findOneAndUpdate(
         { userId: userId },
         {
           $inc: { balance: coinsToCredit },
           $push: {
             transactions: {
+              transaction_id: transactionId,
               amount: coinsToCredit,
               razorpay_payment_id: id,
+              recharge_method: method,
               type: "credit",
+              download_invoice_url: invoice.url,
               description: "coin_recharge",
               timestamp: new Date(),
             },
@@ -281,58 +310,6 @@ export const razorpayWebhook = async (req, res) => {
         { new: true }
       );
       console.log({ coins });
-
-      // generate the invoice
-      // update the transaction status
-      const invoiceDatad = {
-        invoiceNumber: id,
-        invoiceDate: invoice_date,
-        metalType: "Gold",
-        karat: "24K",
-        purity: "99.9%",
-        hsnCode: "123456",
-        quantity: 10,
-        rate: 5000,
-        grossAmount: 32414,
-        taxes: {
-          taxSplit: [
-            { taxPerc: 2.5, taxAmount: 810.35 },
-            { taxPerc: 2.5, taxAmount: 810.35 },
-            { taxPerc: 5, taxAmount: 1620.7 },
-          ],
-        },
-        netAmount: 36055.4,
-        userInfo: {
-          name: name,
-          email: email,
-          number: number,
-        },
-      };
-
-      const invoiceData = {
-        invoiceNumber: id,
-        paymentId: order_id,
-        invoiceDate: invoice_date,
-        quantity: 100,
-        rate: 1,
-        grossAmount: 100,
-        taxes: {
-          taxSplit: [
-            { taxPerc: 2.5, taxAmount: 2.5 },
-            { taxPerc: 2.5, taxAmount: 2.5 },
-            { taxPerc: 5, taxAmount: 5 },
-          ],
-        },
-        netAmount: 110,
-        userInfo: {
-          name: "John Doe",
-          email: "johndoe@example.com",
-          number: "+1 234 567 890",
-        },
-      };
-
-      const invoice = await generateAndUploadInvoice(invoiceData);
-      console.log({ invoice });
 
       const success = await Transactions.findOneAndUpdate(
         { orderId: order_id },
@@ -365,6 +342,24 @@ export const razorpayWebhook = async (req, res) => {
         },
         { new: true }
       );
+
+      await Coins.findOneAndUpdate(
+        { userId: userId },
+        {
+          $push: {
+            transactions: {
+              transaction_id: generateTransactionId(),
+              recharge_method: method,
+              amount: amount / 100,
+              type: "failed",
+              description: "failed_transaction",
+              timestamp: new Date(),
+            },
+          },
+        },
+        { new: true }
+      );
+
       console.log({ txnFailed });
     } else if (event === "invoice.paid") {
       console.log("Invoice paid");
@@ -388,11 +383,22 @@ function validateWebhookSignature(body, signature, secret) {
 
 export const userTransactions = async (req, res) => {
   try {
-    const { userId } = req.params;
-    const transactions = await Transactions.find({ userId }).sort({
-      createdAt: -1,
-    });
-    res.json(transactions);
+    const userId = req.user.id;
+    console.log({ userId });
+
+    const userCoins = await Coins.findOne({ userId })
+      .select("transactions") // Only retrieve the 'transactions' field
+      .exec();
+
+    if (userCoins && userCoins.transactions) {
+      userCoins.transactions = userCoins.transactions.sort(
+        (a, b) => b.timestamp - a.timestamp
+      );
+    }
+
+    console.log({ userCoins });
+
+    res.json({ userCoins });
   } catch (error) {
     console.error("Error fetching transactions:", error);
     res.status(500).json({ error: "Error fetching transactions" });
@@ -418,4 +424,10 @@ export const userTransactions = async (req, res) => {
 
 export function calculateCoins(amount) {
   return Math.floor(amount);
+}
+
+function generateTransactionId() {
+  const timestamp = Date.now(); // Current timestamp in milliseconds
+  const randomStr = Math.random().toString(36).substring(2, 10); // Random alphanumeric string
+  return `TXN-${timestamp}-${randomStr}`; // Combine parts for the transaction ID
 }
