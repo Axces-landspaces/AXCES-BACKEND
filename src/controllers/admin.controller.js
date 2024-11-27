@@ -830,7 +830,7 @@ export const updatePropertyAndContractCharges = async (req, res, next) => {
     }
 
     const charges = await Prices.updateOne({}, { $set: updateFields });
-    console.log((charges));
+    console.log(charges);
     res.status(200).json({
       message: "Property and Contact charges updated successfully",
       charges,
@@ -1010,6 +1010,7 @@ export const viewAllTransactions = async (req, res, next) => {
 
         return {
           ...transaction, // Spread the property details
+          userId: sanitizedOwnerId,
           name: ownerDetails?.name, // Attach the owner's details
           phone: ownerDetails?.number,
           email: ownerDetails?.email,

@@ -25,9 +25,9 @@ router.post("/signinAdmin", signinAdmin);
 router.post("/signupAdmin", signinAdmin);
 
 // Get All Users
-router.get("/users", verifyAdminToken, getAllUsers);
+router.post("/users", verifyAdminToken, getAllUsers);
 
-router.get("/transactions", verifyAdminToken, viewAllTransactions);
+router.post("/transactions", verifyAdminToken, viewAllTransactions);
 
 router.get("/dashboard", verifyAdminToken, adminDashboard);
 
@@ -45,7 +45,7 @@ router.get("/users/:userId", verifyAdminToken, getUserDetails);
 router.put("/updateUser", verifyAdminToken, updateUser);
 
 // Get All Properties
-router.get("/properties", verifyAdminToken, viewAllProperties);
+router.post("/properties", verifyAdminToken, viewAllProperties);
 
 // Get Property Details
 router.get("/properties/:propertyId", verifyAdminToken, viewPropertyDetails);
