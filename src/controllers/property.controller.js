@@ -163,7 +163,12 @@ export const postProperty = async (req, res, next) => {
 
     // Fetch the default property post cost and user's coin balance
     const charges = await Prices.findOne({});
+    console.log({ charges });
     const propertyPostCharges = charges.propertyPostCost;
+    console.log({ propertyPostCharges });
+    if (typeof propertyPostCharges !== "number" || isNaN(propertyPostCharges)) {
+      return next(errorHandler(400, res, "Invalid property post charges"));
+    }
 
     let userCoins = await Coins.findOne({ userId: owner_id });
     const user = await User.findById(owner_id);
@@ -177,7 +182,8 @@ export const postProperty = async (req, res, next) => {
     }
     // Save the property and update user's coin balance
 
-    userCoins.balance -= propertyPostCharges;
+    const newBalance = userCoins.balance - propertyPostCharges;
+    userCoins.balance = newBalance;
     // now generate the invoiceID
     const transactionId = generateTransactionId();
     const gstAmount = calculateGst(propertyPostCharges);
@@ -209,13 +215,13 @@ export const postProperty = async (req, res, next) => {
     console.log({ invoiceUrl });
 
     userCoins.transactions.push({
-      transaction_id: transactionId,
       amount: propertyPostCharges,
+      transaction_id: transactionId,
       description: "property_post",
       timestamp: new Date(),
       type: "debit",
       download_invoice_url: invoiceUrl.url,
-      balanceAfterDeduction: userCoins.balance - propertyPostCharges,
+      balanceAfterDeduction: newBalance,
     });
 
     // generate the invoice

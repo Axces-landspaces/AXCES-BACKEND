@@ -143,10 +143,13 @@ export const getUserProfile = async (req, res, next) => {
     const propertyCount = await Property.countDocuments({ owner_id: user._id });
     console.log(propertyCount);
 
+    const coins = await Coins.findOne({ userId: user._id });
+
     res.status(200).json({
       code: 200,
       data: user,
       owner_properties_count: propertyCount,
+      coins: coins.balance,
       message: "Success",
     });
   } catch (error) {
