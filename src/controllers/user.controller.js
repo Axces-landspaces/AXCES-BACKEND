@@ -144,12 +144,18 @@ export const getUserProfile = async (req, res, next) => {
     console.log(propertyCount);
 
     const coins = await Coins.findOne({ userId: user._id });
+    const charges = await Prices.findOne({});
+    console.log({ charges });
 
     res.status(200).json({
       code: 200,
       data: user,
       owner_properties_count: propertyCount,
       coins: coins.balance,
+      platformCharges: {
+        propertyPostCost: charges.propertyPostCost,
+        propertyContactCost: charges.propertyContactCost,
+      },
       message: "Success",
     });
   } catch (error) {
