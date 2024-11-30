@@ -150,6 +150,10 @@ export const getAllUsers = async (req, res) => {
     if (filters.email) {
       exactQuery.email = filters.email;
     }
+
+    if (filters.userId) {
+      exactQuery._id = filters.userId;
+    }
   }
   console.log(exactQuery);
 
@@ -158,9 +162,20 @@ export const getAllUsers = async (req, res) => {
     const usersWithBalances = await Promise.all(
       users.map(async (user) => {
         const userBalance = await Coins.findOne({ userId: user._id });
+
+        const properties = await Property.find({
+          owner_id: user._id,
+        });
+
+        const coins = await Coins.findOne({ userId: user._id });
+        const sortedCoins = coins.transactions.sort(
+          (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+        );
         return {
           ...user.toObject(),
           balance: userBalance ? userBalance.balance : 0,
+          properties,
+          transactions: sortedCoins,
         };
       })
     );
@@ -810,7 +825,6 @@ export const adminDashboard = async (req, res, next) => {
       ownerDetailsCost: propertyPostAndOwnerDetailsCost.propertyContactCost,
     };
 
-    // total revenue
     const totalRevenue = await Coins.aggregate([
       {
         $unwind: "$transactions",
@@ -831,13 +845,80 @@ export const adminDashboard = async (req, res, next) => {
       },
     ]);
 
+    const totalCoinsAddedByUsers = await Coins.aggregate([
+      {
+        $unwind: "$transactions",
+      },
+      {
+        $match: {
+          "transactions.type": "credit",
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalCoinsAdded: { $sum: "$transactions.amount" },
+        },
+      },
+    ]);
+
+    const totalCoinsRedeemedInContactOwner = await Coins.aggregate([
+      {
+        $unwind: "$transactions",
+      },
+      {
+        $match: {
+          "transactions.type": "debit",
+          "transactions.description": "owner_details",
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalCoinsRedeemed: { $sum: "$transactions.amount" },
+        },
+      },
+    ]);
+
+    const totalCoinsRedeemedInPropertyPost = await Coins.aggregate([
+      {
+        $unwind: "$transactions",
+      },
+      {
+        $match: {
+          "transactions.type": "debit",
+          "transactions.description": "property_post",
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalCoinsRedeemed: { $sum: "$transactions.amount" },
+        },
+      },
+    ]);
+
+    const totalCoinsAdded = totalCoinsAddedByUsers[0]?.totalCoinsAdded || 0;
+    const totalCoinsRedeemedInContact =
+      totalCoinsRedeemedInContactOwner[0]?.totalCoinsRedeemed || 0;
+    const totalCoinsRedeemedInPost =
+      totalCoinsRedeemedInPropertyPost[0]?.totalCoinsRedeemed || 0;
+    const totalRevenueAmount = totalRevenue[0]?.totalRevenue || 0;
+
+    const totalRevenuePayload = {
+      totalCoinsAdded,
+      totalCoinsRedeemedInContact,
+      totalCoinsRedeemedInPost,
+      totalRevenueAmount,
+    };
+
     res.status(200).json({
       data: {
         totalUsers,
         totalProperties,
         totalTransactions,
         totalPropertiesByTypes,
-        totalRevenue,
+        totalRevenue: totalRevenuePayload,
         dailyAggregation,
         weeklyAggregation,
         monthlyAggregation,
@@ -1049,10 +1130,12 @@ export const viewAllTransactions = async (req, res, next) => {
     });
 
     console.log(exactQuery);
-    const exactTransaction = await Transactions.find(exactQuery).lean();
+    const transactionsFromTransactionsModel = await Transactions.find(
+      exactQuery
+    ).lean();
 
-    const transactionWithUserDetails = await Promise.all(
-      exactTransaction.map(async (transaction) => {
+    const razorpayTransactionWithUserDetails = await Promise.all(
+      transactionsFromTransactionsModel.map(async (transaction) => {
         // Sanitize owner_id to remove any newlines or extra spaces
         const sanitizedOwnerId = transaction?.userId?.trim();
 
@@ -1073,9 +1156,64 @@ export const viewAllTransactions = async (req, res, next) => {
       })
     );
 
+    const coinsQuery = {};
+
+    if (filters.userId) {
+      coinsQuery.userId = filters.userId;
+    }
+
+    if (filters.dateRange) {
+      const { startDate, endDate } = filters.dateRange;
+      if (startDate && endDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+
+        coinsQuery["transactions.timestamp"] = {
+          $gte: start,
+          $lte: end,
+        };
+      }
+    }
+
+    const transactionsFromCoinsModel = await Coins.aggregate([
+      { $unwind: "$transactions" },
+      { $match: coinsQuery },
+      {
+        $project: {
+          userId: 1,
+          transaction: "$transactions",
+        },
+      },
+    ]);
+
+    const coinTransactionWithUserDetails = await Promise.all(
+      transactionsFromCoinsModel.map(async (transaction) => {
+        // Sanitize owner_id to remove any newlines or extra spaces
+        const sanitizedOwnerId = transaction?.userId;
+
+        // Fetch user details based on the sanitized owner_id
+        const ownerDetails = await User.findOne(
+          { _id: sanitizedOwnerId },
+          "name email number profilePicture"
+        );
+
+        return {
+          ...transaction, // Spread the property details
+          userId: sanitizedOwnerId,
+          name: ownerDetails?.name, // Attach the owner's details
+          phone: ownerDetails?.number,
+          email: ownerDetails?.email,
+          profilepictures: ownerDetails?.profilePicture,
+        };
+      })
+    );
+
     if (excel_download) {
       const excelBuffer = await generateExcelTransaction(
-        transactionWithUserDetails
+        razorpayTransactionWithUserDetails
       );
       res.setHeader(
         "Content-Type",
@@ -1090,7 +1228,8 @@ export const viewAllTransactions = async (req, res, next) => {
 
     return res.status(200).json({
       code: 200,
-      data: transactionWithUserDetails,
+      razorpayTransactionWithUserDetails,
+      coinTransactionWithUserDetails,
       message: "Properties fetched successfully",
     });
   } catch (error) {

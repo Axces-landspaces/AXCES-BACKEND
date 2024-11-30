@@ -38,8 +38,8 @@ router.put(
   updatePropertyAndContractCharges
 );
 
-// Get User Details
-router.get("/users/:userId", verifyAdminToken, getUserDetails);
+// Get User Details -- delete this btw
+// router.get("/users/:userId", verifyAdminToken, getUserDetails);
 
 // Update User
 // router.put("/users/:userId", verifyAdminToken, updateUser);

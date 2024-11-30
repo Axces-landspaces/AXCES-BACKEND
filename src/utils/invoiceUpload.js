@@ -81,7 +81,7 @@ const generateCustomerInformation = (doc, invoice) => {
     .fontSize(15)
     .font(FONTS.BOLD)
     .fillColor(COLORS.GREEN)
-    .text("Sold by", 20, yPosition)
+    .text("Issued by", 20, yPosition)
     .fillColor(COLORS.BLACK)
     .fontSize(10)
     .text("Axces Landspaces Private Limited", 20, yPosition + 18)
@@ -110,21 +110,14 @@ const generateCustomerInformation = (doc, invoice) => {
     .font(FONTS.BOLD)
     .fontSize(19)
     .text("TAX INVOICE", 453, yPosition + 22)
-    .fontSize(15)
-    .fillColor(COLORS.GREEN)
-    .text("INVOICE", 510, yPosition + 45)
-    .font(FONTS.REGULAR)
-    .fillColor(COLORS.BLACK)
-    .fontSize(10)
-    .text(invoice.invoiceNumber, 433, yPosition + 65)
     .font(FONTS.BOLD)
     .fontSize(15)
     .fillColor(COLORS.GREEN)
-    .text("DATE", 530, yPosition + 85)
+    .text("DATE", 530, yPosition + 44)
     .font(FONTS.REGULAR)
     .fillColor(COLORS.BLACK)
     .fontSize(10)
-    .text(invoice.invoiceDate, 517, yPosition + 105);
+    .text(invoice.invoiceDate, 517, yPosition + 66);
 
   // Customer Information
   const customerY = yPosition + 170;
@@ -132,7 +125,7 @@ const generateCustomerInformation = (doc, invoice) => {
     .fontSize(15)
     .font(FONTS.BOLD)
     .fillColor(COLORS.GREEN)
-    .text("Customer Address", 20, customerY)
+    .text("Customer Details", 20, customerY)
     .fillColor(COLORS.BLACK)
     .fontSize(10)
     .text(userInfo.name, 20, customerY + 20)
@@ -290,6 +283,13 @@ const generateFooter = (doc) => {
     doc.text(term, 23, termsY);
     termsY += 15;
   });
+
+  doc.fontSize(10).text("For Axces Landspaces Private Limited", 400, footerY-10);
+  doc.image("./public/signature.png", 480, footerY, {
+    width: 50,
+    height: 50,
+  });
+  doc.fontSize(10).text("Authorized Signatory", 480, footerY + 50);
 
   // Footer text
   generateHr(doc, 760);

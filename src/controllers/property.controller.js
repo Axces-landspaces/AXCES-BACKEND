@@ -195,7 +195,7 @@ export const postProperty = async (req, res, next) => {
       invoiceDate: getCurrentDate(),
       quantity: propertyPostCharges,
       rate: 1,
-      description: "Property Post Charges",
+      description: "Platform fees",
       grossAmount: propertyPostCharges - gstAmount,
       taxes: {
         taxSplit: [
@@ -908,7 +908,7 @@ export const contactOwner = async (req, res, next) => {
       invoiceDate: getCurrentDate(),
       quantity: ownerDetailsCharges,
       rate: 1,
-      description: "Contact Owner Charges",
+      description: "Platform fees",
       grossAmount: ownerDetailsCharges - gstAmount,
       taxes: {
         taxSplit: [
