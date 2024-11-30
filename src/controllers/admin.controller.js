@@ -8,7 +8,6 @@ import Coins from "../models/coins.model.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
-import pricesModel from "../models/prices.model.js";
 import { Transactions } from "../models/transaction.model.js";
 
 const HARD_CODED_SECRET_TOKEN = "ADMIN"; // Hard-coded token for verification
@@ -38,6 +37,48 @@ export const signinAdmin = async (req, res) => {
     // Generate JWT token
     const token = jwt.sign(
       { id: admin._id, username: admin.username, email: admin.email },
+      process.env.JWT_SECRET,
+      { expiresIn: "12h" } // Set token expiration time as needed
+    );
+
+    // Send token back in the response
+    res.status(200).json({ message: "Sign in successful", token });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Internal server error", error: error.message });
+  }
+};
+
+export const signupAdmin = async (req, res) => {
+  const { token, email, username, password } = req.body;
+
+  // Verify the hard-coded token
+  if (token !== HARD_CODED_SECRET_TOKEN) {
+    return res.status(403).json({ message: "Invalid hard-coded token" });
+  }
+
+  try {
+    // Check if admin exists
+    const isAdminExists = await Admin.findOne({ username });
+    if (isAdminExists) {
+      return res.status(404).json({ message: "Admin already exist" });
+    }
+
+    // Compare password
+    const isPasswordValid = await bcrypt.hash(password, 10);
+
+    // Create new admin
+    const newAdmin = await Admin.create({
+      email,
+      username,
+      password: isPasswordValid,
+    });
+    console.log({ newAdmin });
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: newAdmin._id, username: newAdmin.username, email: newAdmin.email },
       process.env.JWT_SECRET,
       { expiresIn: "12h" } // Set token expiration time as needed
     );
@@ -102,6 +143,12 @@ export const getAllUsers = async (req, res) => {
           $lte: end, // Less than or equal to end date
         };
       }
+    }
+    if (filters.number) {
+      exactQuery.number = filters.number;
+    }
+    if (filters.email) {
+      exactQuery.email = filters.email;
     }
   }
   console.log(exactQuery);
@@ -981,6 +1028,13 @@ export const viewAllTransactions = async (req, res, next) => {
             $lte: end, // Less than or equal to end date
           };
         }
+      }
+
+      if (filters.orderId) {
+        exactQuery.orderId = filters.orderId;
+      }
+      if (filters.userId) {
+        exactQuery.userId = filters.userId;
       }
     }
 

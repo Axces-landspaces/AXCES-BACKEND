@@ -1,5 +1,6 @@
 import express from "express";
 import {
+  signupAdmin,
   adminGetTransactions,
   adminUpdateBalance,
   adminDashboard,
@@ -22,7 +23,7 @@ const router = express.Router();
 router.post("/signinAdmin", signinAdmin);
 
 // Admin Signup
-router.post("/signupAdmin", signinAdmin);
+router.post("/signupAdmin", signupAdmin);
 
 // Get All Users
 router.post("/users", verifyAdminToken, getAllUsers);
@@ -59,6 +60,6 @@ router.put("/updateProperties", verifyAdminToken, updateProperty);
 router.get("/transactions/:userId", verifyAdminToken, adminGetTransactions);
 
 // router.patch("/coins/default", verifyAdminToken, updateDefaultCoinValues);
-router.post("/generate-excel", verifyAdminToken, generateExcelFiles);
+// router.post("/generate-excel", verifyAdminToken, generateExcelFiles);
 
 export default router;
