@@ -399,7 +399,7 @@ async function generateExcel(properties) {
       owner_name: property.owner_name,
       owner_email: property.owner_email,
       owner_phone: property.owner_phone,
-      owner_profilepictures: properties.owner_profilepictures,
+      owner_profilepictures: property.owner_profilepictures,
     });
   });
 
@@ -680,20 +680,289 @@ export const adminGetTransactions = async (req, res, next) => {
     next(error);
   }
 };
+// without date filter
+// export const adminDashboard = async (req, res, next) => {
+//   try {
+//     // this is the total number of users
+//     const totalUsers = await User.countDocuments();
+//     // this is the total number of properties
+//     const totalProperties = await Property.countDocuments();
+//     // this is the number of wallet which is 1 to 1 relationship with user
+//     // const totalTransactions = await Coins.countDocuments();
+//     // total transactions made on the platform including credit and debit
+//     const totalTransactions = await Coins.aggregate([
+//       {
+//         $unwind: "$transactions",
+//       },
+//       {
+//         $group: {
+//           _id: null,
+//           totalTransactions: { $sum: 1 },
+//           totalCreditTransactions: {
+//             $sum: {
+//               $cond: [
+//                 { $eq: ["$transactions.type", "credit"] },
+//                 "$transactions.amount",
+//                 0,
+//               ],
+//             },
+//           },
+//           totalDebitTransactions: {
+//             $sum: {
+//               $cond: [
+//                 { $eq: ["$transactions.type", "debit"] },
+//                 "$transactions.amount",
+//                 0,
+//               ],
+//             },
+//           },
+//         },
+//       },
+//     ]);
+
+//     const totalPropertiesByTypes = await Property.aggregate([
+//       {
+//         $group: {
+//           _id: { $toLower: "$property_type" }, // Convert property_type to lowercase
+//           count: { $sum: 1 },
+//         },
+//       },
+//       {
+//         $project: {
+//           _id: 0,
+//           property_type: "$_id",
+//           count: 1,
+//           percentage: {
+//             $multiply: [{ $divide: ["$count", totalProperties] }, 100],
+//           },
+//         },
+//       },
+//     ]);
+
+//     // Daily Aggregation
+//     const dailyAggregation = await Coins.aggregate([
+//       { $unwind: "$transactions" },
+//       {
+//         $group: {
+//           _id: {
+//             $dateToString: {
+//               format: "%Y-%m-%d",
+//               date: "$transactions.timestamp",
+//             },
+//           },
+//           total_amount: { $sum: "$transactions.amount" },
+//           total_transactions: { $sum: 1 },
+//         },
+//       },
+//       { $sort: { _id: 1 } },
+//       {
+//         $project: {
+//           _id: 0,
+//           date: "$_id",
+//           total_amount: 1,
+//           total_transactions: 1,
+//         },
+//       },
+//       { $limit: 30 }, // Limit to the last 30 days
+//     ]);
+
+//     // Weekly Aggregation
+//     const weeklyAggregation = await Coins.aggregate([
+//       { $unwind: "$transactions" },
+//       {
+//         $group: {
+//           _id: {
+//             $dateToString: {
+//               format: "%Y-%U",
+//               date: "$transactions.timestamp",
+//               timezone: "UTC",
+//             },
+//           },
+//           total_amount: { $sum: "$transactions.amount" },
+//           total_transactions: { $sum: 1 },
+//         },
+//       },
+//       { $sort: { _id: 1 } },
+//       {
+//         $project: {
+//           _id: 0,
+//           week: "$_id",
+//           total_amount: 1,
+//           total_transactions: 1,
+//         },
+//       },
+//       { $limit: 7 }, // Limit to the last 7 weeks
+//     ]);
+
+//     // Monthly Aggregation
+//     const monthlyAggregation = await Coins.aggregate([
+//       { $unwind: "$transactions" },
+//       {
+//         $group: {
+//           _id: {
+//             $dateToString: { format: "%Y-%m", date: "$transactions.timestamp" },
+//           },
+//           total_amount: { $sum: "$transactions.amount" },
+//           total_transactions: { $sum: 1 },
+//         },
+//       },
+//       { $sort: { _id: 1 } },
+//       {
+//         $project: {
+//           _id: 0,
+//           month: "$_id",
+//           total_amount: 1,
+//           total_transactions: 1,
+//         },
+//       },
+//       { $limit: 12 }, // Limit to the last 12 months
+//     ]);
+
+//     // this is the default coins values
+//     const propertyPostAndOwnerDetailsCost = await Prices.findOne();
+//     const propertyContactAndPostCost = {
+//       propertyPostCost: propertyPostAndOwnerDetailsCost.propertyPostCost,
+//       ownerDetailsCost: propertyPostAndOwnerDetailsCost.propertyContactCost,
+//     };
+
+//     const totalRevenue = await Coins.aggregate([
+//       {
+//         $unwind: "$transactions",
+//       },
+//       {
+//         $group: {
+//           _id: null,
+//           totalRevenue: {
+//             $sum: {
+//               $cond: [
+//                 { $eq: ["$transactions.type", "debit"] },
+//                 "$transactions.amount",
+//                 0,
+//               ],
+//             },
+//           },
+//         },
+//       },
+//     ]);
+
+//     const totalCoinsAddedByUsers = await Coins.aggregate([
+//       {
+//         $unwind: "$transactions",
+//       },
+//       {
+//         $match: {
+//           "transactions.type": "credit",
+//         },
+//       },
+//       {
+//         $group: {
+//           _id: null,
+//           totalCoinsAdded: { $sum: "$transactions.amount" },
+//         },
+//       },
+//     ]);
+
+//     const totalCoinsRedeemedInContactOwner = await Coins.aggregate([
+//       {
+//         $unwind: "$transactions",
+//       },
+//       {
+//         $match: {
+//           "transactions.type": "debit",
+//           "transactions.description": "owner_details",
+//         },
+//       },
+//       {
+//         $group: {
+//           _id: null,
+//           totalCoinsRedeemed: { $sum: "$transactions.amount" },
+//         },
+//       },
+//     ]);
+
+//     const totalCoinsRedeemedInPropertyPost = await Coins.aggregate([
+//       {
+//         $unwind: "$transactions",
+//       },
+//       {
+//         $match: {
+//           "transactions.type": "debit",
+//           "transactions.description": "property_post",
+//         },
+//       },
+//       {
+//         $group: {
+//           _id: null,
+//           totalCoinsRedeemed: { $sum: "$transactions.amount" },
+//         },
+//       },
+//     ]);
+
+//     const totalCoinsAdded = totalCoinsAddedByUsers[0]?.totalCoinsAdded || 0;
+//     const totalCoinsRedeemedInContact =
+//       totalCoinsRedeemedInContactOwner[0]?.totalCoinsRedeemed || 0;
+//     const totalCoinsRedeemedInPost =
+//       totalCoinsRedeemedInPropertyPost[0]?.totalCoinsRedeemed || 0;
+//     const totalRevenueAmount = totalRevenue[0]?.totalRevenue || 0;
+
+//     const totalRevenuePayload = {
+//       totalCoinsAdded,
+//       totalCoinsRedeemedInContact,
+//       totalCoinsRedeemedInPost,
+//       totalRevenueAmount,
+//     };
+
+//     res.status(200).json({
+//       data: {
+//         totalUsers,
+//         totalProperties,
+//         totalTransactions,
+//         totalPropertiesByTypes,
+//         totalRevenue: totalRevenuePayload,
+//         dailyAggregation,
+//         weeklyAggregation,
+//         monthlyAggregation,
+//         propertyContactAndPostCost,
+//       },
+//       message: "Dashboard data fetched successfully.",
+//     });
+//   } catch (error) {
+//     console.error("Error fetching dashboard data:", error);
+//     next(error);
+//   }
+// };
 
 export const adminDashboard = async (req, res, next) => {
   try {
-    // this is the total number of users
-    const totalUsers = await User.countDocuments();
-    // this is the total number of properties
-    const totalProperties = await Property.countDocuments();
-    // this is the number of wallet which is 1 to 1 relationship with user
-    // const totalTransactions = await Coins.countDocuments();
-    // total transactions made on the platform including credit and debit
+    // Get date range from query parameters
+    const { fromDate, toDate } = req.query;
+    
+    // Create date filter object if dates are provided
+    const dateFilter = {};
+    if (fromDate && toDate) {
+      dateFilter.createdAt = {
+        $gte: new Date(fromDate),
+        $lte: new Date(toDate)
+      };
+    }
+
+    // Basic counts with date filter
+    const totalUsers = await User.countDocuments(dateFilter);
+    const totalProperties = await Property.countDocuments(dateFilter);
+
+    // Transaction aggregation with date filter
     const totalTransactions = await Coins.aggregate([
       {
-        $unwind: "$transactions",
+        $unwind: "$transactions"
       },
+      ...(fromDate && toDate ? [{
+        $match: {
+          "transactions.timestamp": {
+            $gte: new Date(fromDate),
+            $lte: new Date(toDate)
+          }
+        }
+      }] : []),
       {
         $group: {
           _id: null,
@@ -720,10 +989,19 @@ export const adminDashboard = async (req, res, next) => {
       },
     ]);
 
+    // Properties by type with date filter
     const totalPropertiesByTypes = await Property.aggregate([
+      ...(fromDate && toDate ? [{
+        $match: {
+          createdAt: {
+            $gte: new Date(fromDate),
+            $lte: new Date(toDate)
+          }
+        }
+      }] : []),
       {
         $group: {
-          _id: { $toLower: "$property_type" }, // Convert property_type to lowercase
+          _id: { $toLower: "$property_type" },
           count: { $sum: 1 },
         },
       },
@@ -733,15 +1011,23 @@ export const adminDashboard = async (req, res, next) => {
           property_type: "$_id",
           count: 1,
           percentage: {
-            $multiply: [{ $divide: ["$count", totalProperties] }, 100],
+            $multiply: [{ $divide: ["$count", { $literal: totalProperties }] }, 100],
           },
         },
       },
     ]);
 
-    // Daily Aggregation
+    // Daily Aggregation with date filter
     const dailyAggregation = await Coins.aggregate([
       { $unwind: "$transactions" },
+      ...(fromDate && toDate ? [{
+        $match: {
+          "transactions.timestamp": {
+            $gte: new Date(fromDate),
+            $lte: new Date(toDate)
+          }
+        }
+      }] : []),
       {
         $group: {
           _id: {
@@ -763,12 +1049,19 @@ export const adminDashboard = async (req, res, next) => {
           total_transactions: 1,
         },
       },
-      { $limit: 30 }, // Limit to the last 30 days
     ]);
 
-    // Weekly Aggregation
+    // Weekly Aggregation with date filter
     const weeklyAggregation = await Coins.aggregate([
       { $unwind: "$transactions" },
+      ...(fromDate && toDate ? [{
+        $match: {
+          "transactions.timestamp": {
+            $gte: new Date(fromDate),
+            $lte: new Date(toDate)
+          }
+        }
+      }] : []),
       {
         $group: {
           _id: {
@@ -791,12 +1084,19 @@ export const adminDashboard = async (req, res, next) => {
           total_transactions: 1,
         },
       },
-      { $limit: 7 }, // Limit to the last 7 weeks
     ]);
 
-    // Monthly Aggregation
+    // Monthly Aggregation with date filter
     const monthlyAggregation = await Coins.aggregate([
       { $unwind: "$transactions" },
+      ...(fromDate && toDate ? [{
+        $match: {
+          "transactions.timestamp": {
+            $gte: new Date(fromDate),
+            $lte: new Date(toDate)
+          }
+        }
+      }] : []),
       {
         $group: {
           _id: {
@@ -815,20 +1115,25 @@ export const adminDashboard = async (req, res, next) => {
           total_transactions: 1,
         },
       },
-      { $limit: 12 }, // Limit to the last 12 months
     ]);
 
-    // this is the default coins values
     const propertyPostAndOwnerDetailsCost = await Prices.findOne();
     const propertyContactAndPostCost = {
       propertyPostCost: propertyPostAndOwnerDetailsCost.propertyPostCost,
       ownerDetailsCost: propertyPostAndOwnerDetailsCost.propertyContactCost,
     };
 
+    // Total Revenue with date filter
     const totalRevenue = await Coins.aggregate([
-      {
-        $unwind: "$transactions",
-      },
+      { $unwind: "$transactions" },
+      ...(fromDate && toDate ? [{
+        $match: {
+          "transactions.timestamp": {
+            $gte: new Date(fromDate),
+            $lte: new Date(toDate)
+          }
+        }
+      }] : []),
       {
         $group: {
           _id: null,
@@ -845,13 +1150,18 @@ export const adminDashboard = async (req, res, next) => {
       },
     ]);
 
+    // Coins added by users with date filter
     const totalCoinsAddedByUsers = await Coins.aggregate([
-      {
-        $unwind: "$transactions",
-      },
+      { $unwind: "$transactions" },
       {
         $match: {
           "transactions.type": "credit",
+          ...(fromDate && toDate ? {
+            "transactions.timestamp": {
+              $gte: new Date(fromDate),
+              $lte: new Date(toDate)
+            }
+          } : {})
         },
       },
       {
@@ -862,14 +1172,19 @@ export const adminDashboard = async (req, res, next) => {
       },
     ]);
 
+    // Coins redeemed in contact owner with date filter
     const totalCoinsRedeemedInContactOwner = await Coins.aggregate([
-      {
-        $unwind: "$transactions",
-      },
+      { $unwind: "$transactions" },
       {
         $match: {
           "transactions.type": "debit",
           "transactions.description": "owner_details",
+          ...(fromDate && toDate ? {
+            "transactions.timestamp": {
+              $gte: new Date(fromDate),
+              $lte: new Date(toDate)
+            }
+          } : {})
         },
       },
       {
@@ -880,14 +1195,19 @@ export const adminDashboard = async (req, res, next) => {
       },
     ]);
 
+    // Coins redeemed in property post with date filter
     const totalCoinsRedeemedInPropertyPost = await Coins.aggregate([
-      {
-        $unwind: "$transactions",
-      },
+      { $unwind: "$transactions" },
       {
         $match: {
           "transactions.type": "debit",
           "transactions.description": "property_post",
+          ...(fromDate && toDate ? {
+            "transactions.timestamp": {
+              $gte: new Date(fromDate),
+              $lte: new Date(toDate)
+            }
+          } : {})
         },
       },
       {
@@ -899,10 +1219,8 @@ export const adminDashboard = async (req, res, next) => {
     ]);
 
     const totalCoinsAdded = totalCoinsAddedByUsers[0]?.totalCoinsAdded || 0;
-    const totalCoinsRedeemedInContact =
-      totalCoinsRedeemedInContactOwner[0]?.totalCoinsRedeemed || 0;
-    const totalCoinsRedeemedInPost =
-      totalCoinsRedeemedInPropertyPost[0]?.totalCoinsRedeemed || 0;
+    const totalCoinsRedeemedInContact = totalCoinsRedeemedInContactOwner[0]?.totalCoinsRedeemed || 0;
+    const totalCoinsRedeemedInPost = totalCoinsRedeemedInPropertyPost[0]?.totalCoinsRedeemed || 0;
     const totalRevenueAmount = totalRevenue[0]?.totalRevenue || 0;
 
     const totalRevenuePayload = {
@@ -923,6 +1241,10 @@ export const adminDashboard = async (req, res, next) => {
         weeklyAggregation,
         monthlyAggregation,
         propertyContactAndPostCost,
+        dateRange: {
+          from: fromDate || null,
+          to: toDate || null
+        }
       },
       message: "Dashboard data fetched successfully.",
     });
@@ -957,11 +1279,15 @@ export const updatePropertyAndContractCharges = async (req, res, next) => {
       updateFields.propertyContactCost = propertyContactCost;
     }
 
-    const charges = await Prices.updateOne({}, { $set: updateFields });
-    console.log(charges);
+    await Prices.updateOne({}, { $set: updateFields });
+    const updatedValues = await Prices.findOne({});
+    console.log({updatedValues});
     res.status(200).json({
       message: "Property and Contact charges updated successfully",
-      charges,
+      updatedCharges:{
+        propertyPostCost: updatedValues.propertyPostCost,
+        propertyContactCost: updatedValues.propertyContactCost
+      }
     });
   } catch (error) {
     console.error("Error fetching dashboard data:", error);
@@ -1160,6 +1486,27 @@ export const viewAllTransactions = async (req, res, next) => {
 
     if (filters.userId) {
       coinsQuery.userId = filters.userId;
+    }
+
+    if(filters.transactionId){
+      // coinsQuery.transaction_id = filters.transactionId
+      const pipeline = [
+        { $unwind: "$transactions" },
+        {
+          $match: {
+            "transactions.transaction_id": filters.transactionId,
+          },
+        },
+        {
+          $project: {
+            userId: 1,
+            transaction: "$transactions",
+          },
+        },
+      ];
+
+      const transactionsFromCoinsModel = await Coins.aggregate(pipeline);
+      return res.json(transactionsFromCoinsModel);
     }
 
     if (filters.dateRange) {
