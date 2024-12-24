@@ -83,6 +83,7 @@ export const rechargeCoins = async (req, res, next) => {
       userId: userId,
       amount: order.amount / 100,
       orderId: order.id,
+      type: "recharge",
       status: "processing",
       createdAt: new Date(),
     });
