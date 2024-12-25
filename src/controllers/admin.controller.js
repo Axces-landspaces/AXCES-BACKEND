@@ -97,11 +97,18 @@ async function generateExcelUser(users) {
   const worksheet = workbook.addWorksheet("Users");
 
   worksheet.columns = [
+    { header: "ID", key: "id", width: 30 },
     { header: "Name", key: "name", width: 30 },
     { header: "Phone Number", key: "number", width: 30 },
     { header: "Email", key: "email", width: 50 },
     { header: "Profile Picture", key: "profile_picture", width: 30 },
     { header: "Balance", key: "balance", width: 30 },
+    { header: "Device Token", key: "device_token", width: 50 },
+    { header: "Wishlist", key: "wishlist", width: 50 },
+    { header: "Properties", key: "properties", width: 50 },
+    { header: "Transactions", key: "transactions", width: 50 },
+    { header: "Created At", key: "createdAt", width: 30 },
+    { header: "Updated At", key: "updatedAt", width: 30 },
   ];
   // Style the header row
   worksheet.getRow(1).font = { bold: true };
@@ -114,11 +121,18 @@ async function generateExcelUser(users) {
   // add data rows
   users.forEach((user) => {
     worksheet.addRow({
+      id: user._id,
       name: user.name,
       number: user.number,
       email: user.email,
       profile_picture: user.profilePicture,
       balance: user.balance,
+      device_token: user.device_token,
+      wishlist: user.wishlist,
+      properties: user.properties,
+      transactions: user.transactions,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
     });
   });
 
@@ -936,13 +950,13 @@ export const adminDashboard = async (req, res, next) => {
   try {
     // Get date range from query parameters
     const { fromDate, toDate } = req.query;
-    
+
     // Create date filter object if dates are provided
     const dateFilter = {};
     if (fromDate && toDate) {
       dateFilter.createdAt = {
         $gte: new Date(fromDate),
-        $lte: new Date(toDate)
+        $lte: new Date(toDate),
       };
     }
 
@@ -953,16 +967,20 @@ export const adminDashboard = async (req, res, next) => {
     // Transaction aggregation with date filter
     const totalTransactions = await Coins.aggregate([
       {
-        $unwind: "$transactions"
+        $unwind: "$transactions",
       },
-      ...(fromDate && toDate ? [{
-        $match: {
-          "transactions.timestamp": {
-            $gte: new Date(fromDate),
-            $lte: new Date(toDate)
-          }
-        }
-      }] : []),
+      ...(fromDate && toDate
+        ? [
+            {
+              $match: {
+                "transactions.timestamp": {
+                  $gte: new Date(fromDate),
+                  $lte: new Date(toDate),
+                },
+              },
+            },
+          ]
+        : []),
       {
         $group: {
           _id: null,
@@ -991,14 +1009,18 @@ export const adminDashboard = async (req, res, next) => {
 
     // Properties by type with date filter
     const totalPropertiesByTypes = await Property.aggregate([
-      ...(fromDate && toDate ? [{
-        $match: {
-          createdAt: {
-            $gte: new Date(fromDate),
-            $lte: new Date(toDate)
-          }
-        }
-      }] : []),
+      ...(fromDate && toDate
+        ? [
+            {
+              $match: {
+                createdAt: {
+                  $gte: new Date(fromDate),
+                  $lte: new Date(toDate),
+                },
+              },
+            },
+          ]
+        : []),
       {
         $group: {
           _id: { $toLower: "$property_type" },
@@ -1011,7 +1033,10 @@ export const adminDashboard = async (req, res, next) => {
           property_type: "$_id",
           count: 1,
           percentage: {
-            $multiply: [{ $divide: ["$count", { $literal: totalProperties }] }, 100],
+            $multiply: [
+              { $divide: ["$count", { $literal: totalProperties }] },
+              100,
+            ],
           },
         },
       },
@@ -1020,14 +1045,18 @@ export const adminDashboard = async (req, res, next) => {
     // Daily Aggregation with date filter
     const dailyAggregation = await Coins.aggregate([
       { $unwind: "$transactions" },
-      ...(fromDate && toDate ? [{
-        $match: {
-          "transactions.timestamp": {
-            $gte: new Date(fromDate),
-            $lte: new Date(toDate)
-          }
-        }
-      }] : []),
+      ...(fromDate && toDate
+        ? [
+            {
+              $match: {
+                "transactions.timestamp": {
+                  $gte: new Date(fromDate),
+                  $lte: new Date(toDate),
+                },
+              },
+            },
+          ]
+        : []),
       {
         $group: {
           _id: {
@@ -1054,14 +1083,18 @@ export const adminDashboard = async (req, res, next) => {
     // Weekly Aggregation with date filter
     const weeklyAggregation = await Coins.aggregate([
       { $unwind: "$transactions" },
-      ...(fromDate && toDate ? [{
-        $match: {
-          "transactions.timestamp": {
-            $gte: new Date(fromDate),
-            $lte: new Date(toDate)
-          }
-        }
-      }] : []),
+      ...(fromDate && toDate
+        ? [
+            {
+              $match: {
+                "transactions.timestamp": {
+                  $gte: new Date(fromDate),
+                  $lte: new Date(toDate),
+                },
+              },
+            },
+          ]
+        : []),
       {
         $group: {
           _id: {
@@ -1089,14 +1122,18 @@ export const adminDashboard = async (req, res, next) => {
     // Monthly Aggregation with date filter
     const monthlyAggregation = await Coins.aggregate([
       { $unwind: "$transactions" },
-      ...(fromDate && toDate ? [{
-        $match: {
-          "transactions.timestamp": {
-            $gte: new Date(fromDate),
-            $lte: new Date(toDate)
-          }
-        }
-      }] : []),
+      ...(fromDate && toDate
+        ? [
+            {
+              $match: {
+                "transactions.timestamp": {
+                  $gte: new Date(fromDate),
+                  $lte: new Date(toDate),
+                },
+              },
+            },
+          ]
+        : []),
       {
         $group: {
           _id: {
@@ -1126,14 +1163,18 @@ export const adminDashboard = async (req, res, next) => {
     // Total Revenue with date filter
     const totalRevenue = await Coins.aggregate([
       { $unwind: "$transactions" },
-      ...(fromDate && toDate ? [{
-        $match: {
-          "transactions.timestamp": {
-            $gte: new Date(fromDate),
-            $lte: new Date(toDate)
-          }
-        }
-      }] : []),
+      ...(fromDate && toDate
+        ? [
+            {
+              $match: {
+                "transactions.timestamp": {
+                  $gte: new Date(fromDate),
+                  $lte: new Date(toDate),
+                },
+              },
+            },
+          ]
+        : []),
       {
         $group: {
           _id: null,
@@ -1156,12 +1197,14 @@ export const adminDashboard = async (req, res, next) => {
       {
         $match: {
           "transactions.type": "credit",
-          ...(fromDate && toDate ? {
-            "transactions.timestamp": {
-              $gte: new Date(fromDate),
-              $lte: new Date(toDate)
-            }
-          } : {})
+          ...(fromDate && toDate
+            ? {
+                "transactions.timestamp": {
+                  $gte: new Date(fromDate),
+                  $lte: new Date(toDate),
+                },
+              }
+            : {}),
         },
       },
       {
@@ -1179,12 +1222,14 @@ export const adminDashboard = async (req, res, next) => {
         $match: {
           "transactions.type": "debit",
           "transactions.description": "owner_details",
-          ...(fromDate && toDate ? {
-            "transactions.timestamp": {
-              $gte: new Date(fromDate),
-              $lte: new Date(toDate)
-            }
-          } : {})
+          ...(fromDate && toDate
+            ? {
+                "transactions.timestamp": {
+                  $gte: new Date(fromDate),
+                  $lte: new Date(toDate),
+                },
+              }
+            : {}),
         },
       },
       {
@@ -1202,12 +1247,14 @@ export const adminDashboard = async (req, res, next) => {
         $match: {
           "transactions.type": "debit",
           "transactions.description": "property_post",
-          ...(fromDate && toDate ? {
-            "transactions.timestamp": {
-              $gte: new Date(fromDate),
-              $lte: new Date(toDate)
-            }
-          } : {})
+          ...(fromDate && toDate
+            ? {
+                "transactions.timestamp": {
+                  $gte: new Date(fromDate),
+                  $lte: new Date(toDate),
+                },
+              }
+            : {}),
         },
       },
       {
@@ -1219,8 +1266,10 @@ export const adminDashboard = async (req, res, next) => {
     ]);
 
     const totalCoinsAdded = totalCoinsAddedByUsers[0]?.totalCoinsAdded || 0;
-    const totalCoinsRedeemedInContact = totalCoinsRedeemedInContactOwner[0]?.totalCoinsRedeemed || 0;
-    const totalCoinsRedeemedInPost = totalCoinsRedeemedInPropertyPost[0]?.totalCoinsRedeemed || 0;
+    const totalCoinsRedeemedInContact =
+      totalCoinsRedeemedInContactOwner[0]?.totalCoinsRedeemed || 0;
+    const totalCoinsRedeemedInPost =
+      totalCoinsRedeemedInPropertyPost[0]?.totalCoinsRedeemed || 0;
     const totalRevenueAmount = totalRevenue[0]?.totalRevenue || 0;
 
     const totalRevenuePayload = {
@@ -1243,8 +1292,8 @@ export const adminDashboard = async (req, res, next) => {
         propertyContactAndPostCost,
         dateRange: {
           from: fromDate || null,
-          to: toDate || null
-        }
+          to: toDate || null,
+        },
       },
       message: "Dashboard data fetched successfully.",
     });
@@ -1281,13 +1330,13 @@ export const updatePropertyAndContractCharges = async (req, res, next) => {
 
     await Prices.updateOne({}, { $set: updateFields });
     const updatedValues = await Prices.findOne({});
-    console.log({updatedValues});
+    console.log({ updatedValues });
     res.status(200).json({
       message: "Property and Contact charges updated successfully",
-      updatedCharges:{
+      updatedCharges: {
         propertyPostCost: updatedValues.propertyPostCost,
-        propertyContactCost: updatedValues.propertyContactCost
-      }
+        propertyContactCost: updatedValues.propertyContactCost,
+      },
     });
   } catch (error) {
     console.error("Error fetching dashboard data:", error);
@@ -1488,7 +1537,7 @@ export const viewAllTransactions = async (req, res, next) => {
       coinsQuery.userId = filters.userId;
     }
 
-    if(filters.transactionId){
+    if (filters.transactionId) {
       // coinsQuery.transaction_id = filters.transactionId
       const pipeline = [
         { $unwind: "$transactions" },
