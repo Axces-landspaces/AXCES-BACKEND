@@ -1538,7 +1538,6 @@ export const viewAllTransactions = async (req, res, next) => {
     }
 
     if (filters.transactionId) {
-      // coinsQuery.transaction_id = filters.transactionId
       const pipeline = [
         { $unwind: "$transactions" },
         {
@@ -1555,7 +1554,22 @@ export const viewAllTransactions = async (req, res, next) => {
       ];
 
       const transactionsFromCoinsModel = await Coins.aggregate(pipeline);
-      return res.json(transactionsFromCoinsModel);
+      const userId = transactionsFromCoinsModel[0]?.userId;
+      const user = await User.findOne(
+        { _id: userId },
+        "number email name profilePicture"
+      );
+      if (!user) {
+        return next(errorHandler(404, res, "User not found"));
+      }
+      const transactionsWithUserDetails = transactionsFromCoinsModel.map(
+        (transaction) => ({
+          ...transaction,
+          user,
+        })
+      );
+
+      return res.json({ transactionsWithUserDetails });
     }
 
     if (filters.dateRange) {
