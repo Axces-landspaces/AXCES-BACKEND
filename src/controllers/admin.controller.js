@@ -93,7 +93,7 @@ export const signupAdmin = async (req, res) => {
 };
 
 async function generateExcelUser(users) {
-  const workbook = new excelJs.Workbook();
+  const workbook = new excelJs.Workbook({ useSharedStrings: true });
   const worksheet = workbook.addWorksheet("Users");
 
   worksheet.columns = [
@@ -101,16 +101,16 @@ async function generateExcelUser(users) {
     { header: "Name", key: "name", width: 30 },
     { header: "Phone Number", key: "number", width: 30 },
     { header: "Email", key: "email", width: 50 },
-    { header: "Profile Picture", key: "profile_picture", width: 30 },
-    { header: "Balance", key: "balance", width: 30 },
-    { header: "Device Token", key: "device_token", width: 50 },
+    { header: "Profile Picture", key: "profile_picture", width: 50 },
+    { header: "Balance", key: "balance", width: 20 },
+    { header: "Device Token", key: "device_token", width: 80 },
     { header: "Wishlist", key: "wishlist", width: 50 },
     { header: "Properties", key: "properties", width: 50 },
     { header: "Transactions", key: "transactions", width: 50 },
     { header: "Created At", key: "createdAt", width: 30 },
     { header: "Updated At", key: "updatedAt", width: 30 },
   ];
-  // Style the header row
+
   worksheet.getRow(1).font = { bold: true };
   worksheet.getRow(1).fill = {
     type: "pattern",
@@ -118,21 +118,21 @@ async function generateExcelUser(users) {
     fgColor: { argb: "FFE0E0E0" },
   };
 
-  // add data rows
+  // Add data rows
   users.forEach((user) => {
     worksheet.addRow({
-      id: user._id,
+      id: user._id.toString(),
       name: user.name,
       number: user.number,
       email: user.email,
-      profile_picture: user.profilePicture,
+      profile_picture: user.profilePicture || "",
       balance: user.balance,
       device_token: user.device_token,
-      wishlist: user.wishlist,
-      properties: user.properties,
-      transactions: user.transactions,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
+      wishlist: user.wishlist.length ? JSON.stringify(user.wishlist) : "",
+      properties: user.properties.length ? JSON.stringify(user.properties) : "",
+      transactions: user.transactions.length ? JSON.stringify(user.transactions) : "",
+      createdAt: user.createdAt.toISOString(),
+      updatedAt: user.updatedAt.toISOString(),
     });
   });
 
