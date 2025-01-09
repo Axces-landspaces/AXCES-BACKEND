@@ -104,9 +104,11 @@ async function generateExcelUser(users) {
     { header: "Profile Picture", key: "profile_picture", width: 50 },
     { header: "Balance", key: "balance", width: 20 },
     { header: "Device Token", key: "device_token", width: 80 },
+
     { header: "Wishlist", key: "wishlist", width: 50 },
     { header: "Properties", key: "properties", width: 50 },
     { header: "Transactions", key: "transactions", width: 50 },
+
     { header: "Created At", key: "createdAt", width: 30 },
     { header: "Updated At", key: "updatedAt", width: 30 },
   ];
@@ -127,10 +129,15 @@ async function generateExcelUser(users) {
       email: user.email,
       profile_picture: user.profilePicture || "",
       balance: user.balance,
-      device_token: user.device_token,
-      wishlist: user.wishlist.length ? JSON.stringify(user.wishlist) : "",
-      properties: user.properties.length ? JSON.stringify(user.properties) : "",
-      transactions: user.transactions.length ? JSON.stringify(user.transactions) : "",
+      device_token: user.device_token, 
+
+      wishlist: user.wishlist.length ? user.wishlist.join(", ") : "",
+      properties: user.properties.length ? user.properties.join(", ") : "",
+      transactions: user.transactions.length
+        ? user.properties.join(", ")
+        : "",
+    
+
       createdAt: user.createdAt.toISOString(),
       updatedAt: user.updatedAt.toISOString(),
     });
