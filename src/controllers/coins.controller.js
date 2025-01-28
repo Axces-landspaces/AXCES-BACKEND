@@ -5,6 +5,7 @@ import crypto from "crypto";
 import Razorpay from "razorpay";
 import { Transactions } from "../models/transaction.model.js";
 import { generateAndUploadInvoice } from "../utils/invoiceUpload.js";
+import axios from "axios";
 
 // Get user's coin balance
 export const getBalance = async (req, res, next) => {
@@ -373,6 +374,200 @@ export const razorpayWebhook = async (req, res) => {
     res.status(500).json({ error: "Webhook processing failed" });
   }
 };
+
+export const appleWebhook = async (req, res) => {
+  try {
+    const notification = req.body;
+    const receipt = notification.latest_receipt;
+    const validationResponse = await validateReceipt(receipt);
+
+    switch (notification.notification_type) {
+      case "INITIAL_BUY":
+        // Add coins for the initial purchase
+        break;
+      case "DID_RENEW":
+        // Handle subscription renewals
+        break;
+      case "CANCEL":
+        // Handle cancellations
+        break;
+      default:
+        console.log(
+          "Unhandled notification type:",
+          notification.notification_type
+        );
+    }
+
+    res.status(200).send("OK");
+  } catch (err) {
+    console.error("Error processing notification:", err);
+    res.status(400).send("Error");
+  }
+};
+
+async function validateReceipt(receipt) {
+  try {
+    const verifyURL = "https://buy.itunes.apple.com/verifyReceipt";
+    const backupURL = "https://sandbox.itunes.apple.com/verifyReceipt"; // Sandbox URL for testing
+
+    const requestBody = {
+      'receipt-data': receipt.transactionReceipt,
+      'password': process.env.APPLE_SHARED_SECRET,
+      'exclude-old-transactions': true,
+    };
+
+    // console.log({ requestBody });
+
+    const response = await axios.post(verifyURL, requestBody, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    const result = response.data;
+
+    console.log({ result });
+
+    // If the status is 21007, it means the receipt is from the sandbox environment
+    if (result.status === 21007) {
+      response = await fetch(backupURL, {
+        method: 'POST',
+        body: JSON.stringify(requestBody),
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      result = await response.json();
+    }
+
+    // Valid status is 0
+    if (result.status === 0) {
+      // Find the specific transaction in the receipt
+      const latestReceipt = result.latest_receipt_info[0];
+      
+      // Verify transaction details
+      const isValid = 
+        latestReceipt.product_id === receiptData.productId &&
+        latestReceipt.transaction_id === receiptData.transactionId &&
+        !latestReceipt.cancellation_date;
+
+      if (isValid) {
+        return {
+          isValid: true,
+          transaction: latestReceipt,
+          message: 'Valid purchase'
+        };
+      } else {
+        return {
+          isValid: false,
+          message: 'Receipt validation failed: Transaction details mismatch'
+        };
+      }
+    }
+
+    return {
+      isValid: false,
+      status: result.status,
+      message: 'Receipt validation failed: Invalid status'
+    };
+  } catch (error) {
+    console.error("Error validating purchase:", error);
+    res.status(400).send({ success: false, error: error.message });
+  }
+}
+// --
+export const validatePurchase = async (req, res) => {
+  try {
+    const purchaseData = req.body;
+    console.log({purchaseData});
+    const userId = req.user.id;
+    const verificationResult = await validateReceipt(purchaseData);
+
+    console.log({ verificationResult });
+
+    const invoice_date = new Date(purchaseData.transactionDate * 1000)
+    .toISOString()
+    .split("T")[0];
+
+    if (verificationResult.isValid) {
+      // const amount = purchaseData.productId === 'com.axces.coins.500' ? 500 : 100;
+      const amount = (purchaseData.productId).split(".")[3];
+      const date = new Date(purchaseData.transactionDate).toISOString().split("T")[0];
+      const transactionId = generateTransactionId();
+
+      const user = await User.findById(userId);
+
+      const invoiceData = {
+        invoiceNumber: transactionId,
+        paymentId: transactionId,
+        invoiceDate: date,
+        quantity: amount,
+        rate: 1,
+        description: "Coins Recharge",
+        grossAmount: amount,
+        taxes: {
+          taxSplit: [
+            { taxPerc: 0, taxAmount: "0" },
+            { taxPerc: 0, taxAmount: "0" },
+          ],
+        },
+        netAmount: amount,
+        userInfo: {
+          name: user.name,
+          email: user.email,
+          number: user.number,
+        },
+      };
+
+      const invoice = await generateAndUploadInvoice(invoiceData);
+      console.log({ invoice });
+      
+      const coins = await Coins.findOneAndUpdate(
+        { userId: userId },
+        {
+          $inc: { balance: coinsToCredit },
+          $push: {
+            transactions: {
+              transaction_id: transactionId,
+              amount: amount,
+              recharge_method: "appleIAP",
+              type: "credit",
+              download_invoice_url: invoice.url,
+              description: "coin_recharge",
+              timestamp: new Date(),
+            },
+          },
+        },
+        { new: true }
+      );
+
+      console.log({ coins });
+      
+      res.json({
+        success: true,
+        message: 'Purchase verified successfully',
+        transaction: verificationResult.transaction
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: verificationResult.message
+      });
+    }
+
+  } catch (error) {
+    console.log({error})
+    res.status(500).json({
+      success: false,
+      message: 'Server error during purchase verification',
+      error: error.message,
+    });
+  }
+};
+
+async function addCoinsToUser(userId, coins) {
+  // Update the user's coin balance in your database
+  console.log(`Added ${coins} coins to user ${userId}`);
+}
 
 function validateWebhookSignature(body, signature, secret) {
   const expectedSignature = crypto

@@ -7,6 +7,8 @@ import {
   validateRazorpay,
   userTransactions,
   checkStatus,
+  appleWebhook,
+  validatePurchase
 } from "../controllers/coins.controller.js";
 
 const router = express.Router();
@@ -22,4 +24,6 @@ router.get("/transactions", authenticateToken, userTransactions);
 router.post("/payment/status", authenticateToken, checkStatus);
 router.post("/webhook", razorpayWebhook);
 
+router.post("/applewebhook", appleWebhook);
+router.post('/validate-purchase', authenticateToken, validatePurchase);
 export default router;
