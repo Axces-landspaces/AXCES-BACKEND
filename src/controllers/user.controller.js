@@ -11,7 +11,6 @@ dotenv.config();
 export const createProfile = async (req, res, next) => {
   try {
     const { number } = req.body;
-    // Check if user exists with the given phone number
     let user = await User.findOne({ number });
 
     const propertyContactAndPostCost = await Prices.findOne({}).select(
@@ -21,8 +20,6 @@ export const createProfile = async (req, res, next) => {
     if (user) {
       // User exists, return user details with token
       const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
-      // TODO: question regarding the device_token, does that going to update on every logins/or as user signin using
-      // ! differnt mobile as it contain the information regarding the device
       return res.status(200).json({
         status: "success",
         data: { id: user._id, name: user.name, email: user.email, token },
@@ -43,14 +40,9 @@ export const createProfile = async (req, res, next) => {
         return next(errorHandler(400, res, "Email already exists"));
       }
 
-      // ! Cant digest it - pawan singh
-      // ! below three line of code
-
       // Get the default coin balance
       const defaultBalanceDoc = await Coins.findOne({});
-      // console.log(defaultBalanceDoc);
       const balance = defaultBalanceDoc ? defaultBalanceDoc.balance : 200;
-
       // User does not exist, create a new profile
       user = new User({ number, name, email, device_token });
       await user.save();
@@ -187,13 +179,7 @@ export const sendOtp = async (req, res, next) => {
       `https://2factor.in/API/V1/${apiKey}/SMS/${phoneNumber}/AUTOGEN2/OTP1`,
       requestOptions
     );
-
-    // Use the .json() method to parse the response
     const responseJson = await data.json();
-
-    console.log(responseJson);
-
-    // Send the parsed JSON as a response
     res.status(200).json(responseJson);
   } catch (error) {
     console.error("Error:", error);
@@ -202,7 +188,7 @@ export const sendOtp = async (req, res, next) => {
 };
 
 export const verifyOtp = async (req, res, next) => {
-  const apiKey = process.env.TWOFACTOR_API_KEY; // Replace with your actual API key
+  const apiKey = process.env.TWOFACTOR_API_KEY; 
   const { otp, sessionId } = req.body;
 
   if (
@@ -226,13 +212,7 @@ export const verifyOtp = async (req, res, next) => {
       `https://2factor.in/API/V1/${apiKey}/SMS/VERIFY/${sessionId}/${otp}`,
       requestOptions
     );
-
-    // Use the .json() method to parse the response
     const responseJson = await data.json();
-
-    console.log(responseJson);
-
-    // Send the parsed JSON as a response
     res.status(200).json(responseJson);
   } catch (error) {
     console.error("Error:", error);
@@ -258,13 +238,10 @@ export const profileUpload = async (req, res, next) => {
       return next(errorHandler(500, res, "Error uploading image"));
     }
 
-    // Assuming req.user contains the authenticated user's ID
     const userId = req.user.id;
-
-    // Update user's profilePicture field in the database
     const user = await User.findByIdAndUpdate(
       userId,
-      { profilePicture: imageResponse.secure_url }, // Assuming imageResponse.secure_url is the Cloudinary URL
+      { profilePicture: imageResponse.secure_url },
       { new: true } // Return the updated document
     );
 

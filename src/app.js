@@ -7,14 +7,12 @@ import coinsRoutes from "./routes/coins.route.js";
 import adminRoutes from "./routes/admin.route.js";
 import autoSuggestRoutes from "./routes/autosuggestion.js";
 import dotenv from "dotenv";
-import bodyParser from "body-parser";
 import { startExpiryCheck } from "./models/transaction.model.js";
 
 dotenv.config();
 
 const app = express();
 
-// CORS configuration
 const corsOptions = {
   origin: [
     "https://axces.in",

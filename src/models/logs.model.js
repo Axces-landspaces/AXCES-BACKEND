@@ -8,7 +8,7 @@ const LogsSchema = new Schema(
       required: true,
     },
     logData: {
-      type: Object, // Changed from JSON to Object for better MongoDB compatibility
+      type: Object,
       required: true,
     },
     action: {

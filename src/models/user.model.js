@@ -15,14 +15,6 @@ const UserSchema = new Schema(
       required: [true, "Email is required"],
       unique: true,
     },
-    // ! Balance is rudundant here, cuz there is two place that
-    // ! balance field exists, then we need to update it two sides
-    // so the balance is going to exist on the coins table, where all the 
-    // data around payment gonna exists
-    // balance: {
-    //   type: Number,
-    //   default: 0,
-    // },
     profilePicture: {
       type: String,
     },

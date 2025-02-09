@@ -7,12 +7,11 @@ import { Transactions } from "../models/transaction.model.js";
 import { generateAndUploadInvoice } from "../utils/invoiceUpload.js";
 import axios from "axios";
 
-// Get user's coin balance
 export const getBalance = async (req, res, next) => {
   try {
-    const userId = req.user.id; // Assuming user ID is retrieved from authentication middleware
+    const userId = req.user.id;
     console.log(userId);
-    // Check if coins document exists for the user
+
     const coins = await Coins.findOne({ userId });
     console.log(coins);
 
@@ -33,7 +32,7 @@ export const getBalance = async (req, res, next) => {
     next(error);
   }
 };
-// Recharge user's coins --- this is perfect no problem in this
+
 export const rechargeCoins = async (req, res, next) => {
   const razorpay = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID,
@@ -161,8 +160,6 @@ export const validateRazorpay = async (req, res, next) => {
     key_secret: process.env.RAZORPAY_KEY_SECRET,
   });
   try {
-    // get the userId from the req.user.id
-    // const userId = req.user.id; // Assuming user ID is retrieved from authentication middleware
     const { razorpay_payment_id, razorpay_order_id, razorpay_signature } =
       req.body;
 
@@ -256,9 +253,7 @@ export const razorpayWebhook = async (req, res) => {
       .split("T")[0];
 
     if (event === "payment.captured") {
-      // update the user balance
       const coinsToCredit = calculateCoins(amount / 100);
-      // update the user balances put it in the transaction history
       console.log({
         userId,
         razorpay_order_id: order_id,
@@ -323,8 +318,6 @@ export const razorpayWebhook = async (req, res) => {
         { new: true }
       );
       console.log({ success });
-      // Log the payment details to the server
-      // update the user balances
       const logs = await Logs.create({
         razorpay_order_id: order_id,
         razorpay_payment_id: id,
@@ -366,8 +359,7 @@ export const razorpayWebhook = async (req, res) => {
     } else if (event === "invoice.paid") {
       console.log("Invoice paid");
     }
-    // this is mandatory, to tell the razorpay backend to
-    // know that you captured the request
+
     return res.status(200).json({ received: true });
   } catch (error) {
     console.error("Webhook error: ", error);
@@ -474,7 +466,7 @@ async function validateReceipt(receipt) {
     res.status(400).send({ success: false, error: error.message });
   }
 }
-// --
+
 export const validatePurchase = async (req, res) => {
   try {
     const purchaseData = req.body;
@@ -488,12 +480,7 @@ export const validatePurchase = async (req, res) => {
 
     console.log({ verificationResult });
 
-    const invoice_date = new Date(purchaseData.transactionDate * 1000)
-      .toISOString()
-      .split("T")[0];
-
     if (verificationResult.isValid) {
-      // const amount = purchaseData.productId === 'com.axces.coins.500' ? 500 : 100;
       const amount = (purchaseData.productId).split(".")[3]; // 500
       const date = new Date(purchaseData.transactionDate).toISOString().split("T")[0];
       const transactionId = generateTransactionId();
@@ -569,11 +556,6 @@ export const validatePurchase = async (req, res) => {
   }
 };
 
-async function addCoinsToUser(userId, coins) {
-  // Update the user's coin balance in your database
-  console.log(`Added ${coins} coins to user ${userId}`);
-}
-
 function validateWebhookSignature(body, signature, secret) {
   const expectedSignature = crypto
     .createHmac("sha256", secret)
@@ -605,23 +587,6 @@ export const userTransactions = async (req, res) => {
     res.status(500).json({ error: "Error fetching transactions" });
   }
 };
-
-// async function handlePaymentFailure(orderId) {
-//   try {
-//     await Transactions.findOneAndUpdate(
-//       { razorpay_order_id: orderId },
-//       {
-//         status: "failed",
-//         processedAt: new Date(),
-//       }
-//     );
-
-//     return { success: false };
-//   } catch (error) {
-//     console.error("Error handling payment failure:", error);
-//     throw error;
-//   }
-// }
 
 export function calculateCoins(amount) {
   return Math.floor(amount);

@@ -99,7 +99,6 @@ const PropertySchema = new mongoose.Schema(
     },
     furnish_type: {
       type: String,
-      // TODO: have to do one more value
       enum: ["Fully Furnished", "Semi Furnished", "Un-Furnished"],
     },
     available_from: {

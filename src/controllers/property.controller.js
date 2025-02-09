@@ -65,8 +65,6 @@ export const postProperty = async (req, res, next) => {
       return next(errorHandler(400, res, "Property type is required"));
     }
 
-    // making things mandatory for residential properties\
-    // cuz i remove most of it from schema as required
     if (property_type === "residential") {
       if (
         !bedrooms ||
@@ -128,8 +126,6 @@ export const postProperty = async (req, res, next) => {
     console.log(req.files);
     const imageResponse = await uploadOnCloudinary(imageLocalPath);
 
-    // const owner_model = await User.findById(id);
-    // Create a new property
     property = new Property({
       listing_type,
       owner_id,
@@ -180,11 +176,9 @@ export const postProperty = async (req, res, next) => {
     if (!userCoins || userCoins.balance < propertyPostCharges) {
       return next(errorHandler(402, res, "Insufficient balance"));
     }
-    // Save the property and update user's coin balance
 
     const newBalance = userCoins.balance - propertyPostCharges;
     userCoins.balance = newBalance;
-    // now generate the invoiceID
     const transactionId = generateTransactionId();
     const gstAmount = calculateGst(propertyPostCharges);
     console.log({ gstAmount });
@@ -224,8 +218,6 @@ export const postProperty = async (req, res, next) => {
       balanceAfterDeduction: newBalance,
     });
 
-    // generate the invoice
-
     await userCoins.save();
     await property.save();
 
@@ -244,7 +236,6 @@ export const postProperty = async (req, res, next) => {
 export const editProperty = async (req, res, next) => {
   const { propertyId, updatedPropertyDetails } = req.body;
 
-  // TODO: only allow to update certain fields if that property belong to the user
   const userId = req.user.id;
   console.log("userId: ", userId);
 
@@ -270,7 +261,6 @@ export const editProperty = async (req, res, next) => {
       return next(errorHandler(404, res, "Property not found"));
     }
 
-    // Update property details
     Object.assign(property, updatedPropertyDetails);
     await property.save();
 
@@ -287,7 +277,6 @@ export const editProperty = async (req, res, next) => {
 
 export const deleteProperty = async (req, res, next) => {
   const { propertyId } = req.body;
-  // Delete a property, and only allow authorized users to delete
   const userId = req.user.id;
   console.log("userId: ", userId);
 
@@ -325,11 +314,7 @@ export const deleteProperty = async (req, res, next) => {
 
 export const getPropertyDetails = async (req, res, next) => {
   const { pid } = req.params;
-
   const id = req.user.id;
-
-  console.log({ pid });
-  console.log({ id });
 
   try {
     let property = await Property.findById(pid);
@@ -341,15 +326,10 @@ export const getPropertyDetails = async (req, res, next) => {
 
     const owner = await User.findById(property.owner_id);
     console.log({ owner });
-    // Convert to plain JavaScript object
     property = property.toObject();
     property.owner_name = owner.name;
     property.owner_phone = owner.number;
     property.owner_profile_picture = owner?.profilePicture;
-    // Check if the property is in the user's wishlist
-
-    // this is logged in user, not the owner
-    // if that already in wishlist
 
     const user = await User.findById(id);
 
@@ -371,242 +351,10 @@ export const getPropertyDetails = async (req, res, next) => {
   }
 };
 
-// export const listPropertiessafe = async (req, res, next) => {
-//   const { userLatitude, userLongitude, owner_id, filters } = req.body;
-//   const userId = req.user.id;
-//
-//   // this is the requested code for owner's properties
-//   if (owner_id) {
-//     console.log(owner_id);
-//     try {
-//       const ownerProperties = await Property.find({ owner_id });
-//       console.log(ownerProperties);
-//       if (!ownerProperties.length) {
-//         return res.status(404).json({
-//           code: 404,
-//           data: {},
-//           message: "No properties found for the given owner",
-//         });
-//       }
-//
-//       return res.status(200).json({
-//         code: 200,
-//         data: ownerProperties,
-//         message: "Owner's properties fetched successfully",
-//       });
-//     } catch (error) {
-//       console.error("Error fetching owner's properties:", error);
-//       return next(error);
-//     }
-//   }
-//
-//   try {
-//     // Fetch user's wishlist
-//     const userWishlist = await User.findById(userId).populate("wishlist");
-//     const wishlistPropertyIds =
-//       userWishlist?.wishlist.map((item) => item._id.toString()) || [];
-//
-//     if (!userLatitude || !userLongitude) {
-//       return res.status(400).json({
-//         code: 400,
-//         data: {},
-//         message: "User latitude and longitude are required",
-//       });
-//     }
-//
-//     const exactQuery = {};
-//     // Apply filters for exact match query
-//     if (filters) {
-//       if (filters.userId) {
-//         exactQuery.userId = {
-//           $regex: `\\b${filters.userId}\\b`,
-//           $options: "i",
-//         };
-//       }
-//       if (filters.listing_type) {
-//         exactQuery.listing_type = {
-//           $regex: `\\b${filters.listing_type}\\b`,
-//           $options: "i",
-//         };
-//       }
-//       if (filters.property_posted_by) {
-//         exactQuery.property_posted_by = {
-//           $regex: `\\b${filters.property_posted_by}\\b`,
-//           $options: "i",
-//         };
-//       }
-//       if (filters.property_type) {
-//         exactQuery.property_type = {
-//           $regex: `\\b${filters.property_type}\\b`,
-//           $options: "i",
-//         };
-//       }
-//       if (filters.purpose) {
-//         exactQuery.purpose = {
-//           $regex: `\\b${filters.purpose}\\b`,
-//           $options: "i",
-//         };
-//       }
-//       if (filters.title) {
-//         exactQuery.title = { $regex: `\\b${filters.title}\\b`, $options: "i" };
-//       }
-//       if (filters.description) {
-//         exactQuery.description = {
-//           $regex: `\\b${filters.description}\\b`,
-//           $options: "i",
-//         };
-//       }
-//       if (filters.address) {
-//         exactQuery.address = {
-//           $regex: `\\b${filters.address}\\b`,
-//           $options: "i",
-//         };
-//       }
-//       if (filters.pincode) {
-//         exactQuery.pincode = {
-//           $regex: `\\b${filters.pincode}\\b`,
-//           $options: "i",
-//         };
-//       }
-//
-//       if (filters.building_name) {
-//         exactQuery.building_name = {
-//           $regex: `\\b${filters.building_name}\\b`,
-//           $options: "i",
-//         };
-//       }
-//       if (filters.bedrooms) {
-//         exactQuery.bedrooms = filters.bedrooms;
-//       }
-//       if (filters.bathrooms) {
-//         exactQuery.bathrooms = filters.bathrooms;
-//       }
-//       if (filters.area_sqft) {
-//         exactQuery.area_sqft = filters.area_sqft;
-//       }
-//       if (filters.property_age) {
-//         exactQuery.property_age = filters.property_age;
-//       }
-//       if (filters.facing) {
-//         exactQuery.facing = {
-//           $regex: `\\b${filters.facing}\\b`,
-//           $options: "i",
-//         };
-//       }
-//       if (filters.floor_number) {
-//         exactQuery.floor_number = filters.floor_number;
-//       }
-//       if (filters.total_floors) {
-//         exactQuery.total_floors = filters.total_floors;
-//       }
-//       if (filters.furnish_type) {
-//         exactQuery.furnish_type = {
-//           $regex: `\\b${filters.furnish_type}\\b`,
-//           $options: "i",
-//         };
-//       }
-//       if (filters.available_from) {
-//         exactQuery.available_from = filters.available_from;
-//       }
-//
-//       // monthly rent filter - range based
-//       if (filters.monthly_rent && Array.isArray(filters.monthly_rent)) {
-//         if (filters.monthly_rent[0] && filters.monthly_rent[1]) {
-//           exactQuery.monthly_rent = {
-//             $gte: filters.monthly_rent[0], // Minimum value
-//             $lte: filters.monthly_rent[1], // Maximum value
-//           };
-//         }
-//       }
-//
-//       if (filters.security_deposit) {
-//         exactQuery.security_deposit = filters.security_deposit;
-//       }
-//       if (filters.preferred_tenant) {
-//         exactQuery.preferred_tenant = {
-//           $regex: `\\b${filters.preferred_tenant}\\b`,
-//           $options: "i",
-//         };
-//       }
-//       if (filters.localities && Array.isArray(filters.localities)) {
-//         exactQuery.localities = {
-//           $regex: `\\b${filters.localities}\\b`,
-//           $options: "i",
-//         };
-//       }
-//       if (filters.landmark) {
-//         exactQuery.landmark = {
-//           $regex: `\\b${filters.landmark}\\b`,
-//           $options: "i",
-//         };
-//       }
-//       if (filters.facilities && Array.isArray(filters.facilities)) {
-//         exactQuery.facilities = { $all: filters.facilities };
-//       }
-//     }
-//
-//     const exactProperties = await Property.find(exactQuery).lean();
-//
-//     if (exactProperties.length === 0) {
-//       return res.status(200).json({
-//         code: 200,
-//         data: [],
-//         message: "No properties match the given filters",
-//       });
-//     }
-//
-//     // Calculate distance and add it to the properties
-//     const addDistanceToProperties = (properties) => {
-//       return properties.map((property) => {
-//         if (
-//           !property.location ||
-//           !property.location.latitude ||
-//           !property.location.longitude
-//         ) {
-//           property.distance = Infinity; // or some default value
-//         } else {
-//           const distance = getDistance(
-//             { latitude: userLatitude, longitude: userLongitude },
-//             {
-//               latitude: property.location.latitude,
-//               longitude: property.location.longitude,
-//             }
-//           );
-//           property.distance = distance / 1000; // distance in kilometers
-//         }
-//
-//         // Check if the property is in the user's wishlist
-//         property.isInWishlist = wishlistPropertyIds.includes(
-//           property._id.toString()
-//         );
-//
-//         return property;
-//       });
-//     };
-//
-//     const exactPropertiesWithDistance =
-//       addDistanceToProperties(exactProperties);
-//
-//     exactPropertiesWithDistance.sort(
-//       (a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity)
-//     );
-//
-//     res.status(200).json({
-//       code: 200,
-//       data: exactPropertiesWithDistance.slice(0, 10), // Limit to 10 properties
-//       message: "Properties fetched successfully",
-//     });
-//   } catch (error) {
-//     console.error("Error fetching properties:", error);
-//     next(error);
-//   }
-// };
-
 export const listProperties = async (req, res, next) => {
   const { userLatitude, userLongitude, owner_id, filters } = req.body;
   const userId = req.user.id;
 
-  // this is the requested code for owner's properties
   if (owner_id) {
     console.log(owner_id);
     try {
@@ -976,13 +724,11 @@ export const addToWishlist = async (req, res, next) => {
   const userId = req.user.id;
 
   try {
-    // Find the user
     const user = await User.findById(userId);
     if (!user) {
       return next(errorHandler(404, res, "User not found"));
     }
 
-    // Find the property
     const property = await Property.findById(propertyId);
     if (!property) {
       return next(errorHandler(404, res, "Property not found"));
