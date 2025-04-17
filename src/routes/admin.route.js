@@ -15,6 +15,7 @@ import {
   updatePropertyAndContractCharges,
   generateExcelFiles,
   viewAllTransactions,
+  deleteProperty
 } from "../controllers/admin.controller.js";
 import { verifyAdminToken } from "../middlewares/verifyAdmin.middleware.js";
 
@@ -45,6 +46,8 @@ router.put(
 // router.put("/users/:userId", verifyAdminToken, updateUser);
 router.put("/updateUser", verifyAdminToken, updateUser);
 
+router.delete("/delete/property/:propertyId", verifyAdminToken, deleteProperty);
+
 // Get All Properties
 router.post("/properties", verifyAdminToken, viewAllProperties);
 
@@ -61,8 +64,5 @@ router.get("/transactions/:userId", verifyAdminToken, adminGetTransactions);
 
 // router.patch("/coins/default", verifyAdminToken, updateDefaultCoinValues);
 // router.post("/generate-excel", verifyAdminToken, generateExcelFiles);
-
-
-
 
 export default router;

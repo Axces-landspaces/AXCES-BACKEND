@@ -9,22 +9,25 @@ import Prices from "../models/prices.model.js";
 dotenv.config();
 
 export const createProfile = async (req, res, next) => {
+  console.log("createProfile");
   try {
     const { number } = req.body;
+    console.log("number", number);
     let user = await User.findOne({ number });
 
     const propertyContactAndPostCost = await Prices.findOne({}).select(
       "propertyPostCost propertyContactCost"
     );
-
+    console.log("propertyContactAndPostCost", propertyContactAndPostCost);
     if (user) {
+      console.log("user", user);
       // User exists, return user details with token
       const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
       return res.status(200).json({
         status: "success",
         data: { id: user._id, name: user.name, email: user.email, token },
         propertyContactAndPostCost,
-        message: "User found successfully",
+        message: "User found successfully"
       });
     } else {
       const { number, name, email, device_token } = req.body;
@@ -41,15 +44,17 @@ export const createProfile = async (req, res, next) => {
       }
 
       // Get the default coin balance
-      const defaultBalanceDoc = await Coins.findOne({});
-      const balance = defaultBalanceDoc ? defaultBalanceDoc.balance : 200;
+      // const defaultBalanceDoc = await Coins.findOne({});
+      // const balance = defaultBalanceDoc ? defaultBalanceDoc.balance : 0;
       // User does not exist, create a new profile
       user = new User({ number, name, email, device_token });
+      console.log("new user", user);
       await user.save();
 
-      const coins = new Coins({ userId: user._id, balance });
+      const coins = new Coins({ userId: user._id, balance: 0 });
+      console.log("coins", coins);
       await coins.save();
-      console.log(coins);
+      console.log("coins", coins);
 
       const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
 
@@ -59,12 +64,12 @@ export const createProfile = async (req, res, next) => {
           id: user._id,
           name: user.name,
           email: user.email,
-          balance,
+          balance: coins.balance,
           token,
-          device_token,
+          device_token
         },
         propertyContactAndPostCost,
-        message: "User registered successfully",
+        message: "User registered successfully"
       });
     }
   } catch (error) {
@@ -90,7 +95,7 @@ export const verifyNumber = async (req, res, next) => {
       return res.status(200).json({
         status: "success",
         data: { id: user._id, name: user.name, email: user.email, token },
-        message: "User found successfully",
+        message: "User found successfully"
       });
     } else {
       return next(errorHandler(404, res, "User not found"));
@@ -115,7 +120,7 @@ export const updateUserProfile = async (req, res, next) => {
     res.status(200).json({
       code: 200,
       data: user,
-      message: "Success",
+      message: "Success"
     });
   } catch (error) {
     console.error("Error updating profile:", error);
@@ -146,9 +151,9 @@ export const getUserProfile = async (req, res, next) => {
       coins: coins.balance,
       platformCharges: {
         propertyPostCost: charges.propertyPostCost,
-        propertyContactCost: charges.propertyContactCost,
+        propertyContactCost: charges.propertyContactCost
       },
-      message: "Success",
+      message: "Success"
     });
   } catch (error) {
     console.error("Error fetching user profile:", error);
@@ -165,13 +170,13 @@ export const sendOtp = async (req, res, next) => {
     return res.status(200).json({
       Status: "Success",
       Details: "15448d90-7d7f-11ef-8b57-02004d936044",
-      OTP: "123456",
+      OTP: "123456"
     });
   }
 
   var requestOptions = {
     method: "GET",
-    redirect: "follow",
+    redirect: "follow"
   };
 
   try {
@@ -188,7 +193,7 @@ export const sendOtp = async (req, res, next) => {
 };
 
 export const verifyOtp = async (req, res, next) => {
-  const apiKey = process.env.TWOFACTOR_API_KEY; 
+  const apiKey = process.env.TWOFACTOR_API_KEY;
   const { otp, sessionId } = req.body;
 
   if (
@@ -198,13 +203,13 @@ export const verifyOtp = async (req, res, next) => {
   ) {
     return res.status(200).json({
       Status: "Success",
-      Details: "OTP Matched",
+      Details: "OTP Matched"
     });
   }
 
   var requestOptions = {
     method: "GET",
-    redirect: "follow",
+    redirect: "follow"
   };
 
   try {
@@ -252,7 +257,7 @@ export const profileUpload = async (req, res, next) => {
     res.status(200).json({
       code: 200,
       data: { profilePicture: user.profilePicture },
-      message: "Profile picture uploaded and updated successfully",
+      message: "Profile picture uploaded and updated successfully"
     });
   } catch (error) {
     console.log(error);

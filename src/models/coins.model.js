@@ -6,36 +6,36 @@ const CoinsSchema = new mongoose.Schema({
     type: String,
     ref: "User",
     required: true,
-    unique: true,
+    unique: true
   },
   balance: {
     type: Number,
-    default: 200,
+    default: 0
   },
   defaultPropertyPostCost: {
     type: Number,
-    default: 10,
+    default: 10
   },
   defaultOwnerDetailsCost: {
     type: Number,
-    default: 10,
+    default: 10
   },
   transactions: [
     {
       transaction_id: {
         type: String,
-        unique: true,
+        unique: true
       },
       amount: {
-        type: Number,
+        type: Number
       },
       razorpay_payment_id: {
-        type: String,
+        type: String
       },
       type: {
         type: String,
         enum: ["credit", "debit", "refund", "failed"],
-        required: true,
+        required: true
       },
       description: {
         type: String,
@@ -45,26 +45,34 @@ const CoinsSchema = new mongoose.Schema({
           "coin_recharge",
           "failed_transaction",
           "service_cancellation",
-          "referral_bonus",
+          "referral_bonus"
         ],
-        required: true,
+        required: true
       },
       balanceAfterDeduction: {
-        type: Number,
+        type: Number
       },
       recharge_method: {
         type: String,
-        enum: ["upi", "card", "netbanking", "wallet", "debit", "credit", "appleIAP"],
+        enum: [
+          "upi",
+          "card",
+          "netbanking",
+          "wallet",
+          "debit",
+          "credit",
+          "appleIAP"
+        ]
       },
       download_invoice_url: {
-        type: String,
+        type: String
       },
       timestamp: {
         type: Date,
-        default: Date.now,
-      },
-    },
-  ],
+        default: Date.now
+      }
+    }
+  ]
 });
 
 const Coins = mongoose.model("Coins", CoinsSchema);

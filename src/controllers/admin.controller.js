@@ -72,7 +72,7 @@ export const signupAdmin = async (req, res) => {
     const newAdmin = await Admin.create({
       email,
       username,
-      password: isPasswordValid,
+      password: isPasswordValid
     });
     console.log({ newAdmin });
 
@@ -110,14 +110,14 @@ async function generateExcelUser(users) {
     { header: "Transactions", key: "transactions", width: 50 },
 
     { header: "Created At", key: "createdAt", width: 30 },
-    { header: "Updated At", key: "updatedAt", width: 30 },
+    { header: "Updated At", key: "updatedAt", width: 30 }
   ];
 
   worksheet.getRow(1).font = { bold: true };
   worksheet.getRow(1).fill = {
     type: "pattern",
     pattern: "solid",
-    fgColor: { argb: "FFE0E0E0" },
+    fgColor: { argb: "FFE0E0E0" }
   };
 
   // Add data rows
@@ -129,17 +129,14 @@ async function generateExcelUser(users) {
       email: user.email,
       profile_picture: user.profilePicture || "",
       balance: user.balance,
-      device_token: user.device_token, 
+      device_token: user.device_token,
 
       wishlist: user.wishlist.length ? user.wishlist.join(", ") : "",
       properties: user.properties.length ? user.properties.join(", ") : "",
-      transactions: user.transactions.length
-        ? user.properties.join(", ")
-        : "",
-    
+      transactions: user.transactions.length ? user.properties.join(", ") : "",
 
       createdAt: user.createdAt.toISOString(),
-      updatedAt: user.updatedAt.toISOString(),
+      updatedAt: user.updatedAt.toISOString()
     });
   });
 
@@ -161,7 +158,7 @@ export const getAllUsers = async (req, res) => {
         end.setHours(23, 59, 59, 999);
         exactQuery.createdAt = {
           $gte: start, // Greater than or equal to start date
-          $lte: end, // Less than or equal to end date
+          $lte: end // Less than or equal to end date
         };
       }
     }
@@ -185,7 +182,7 @@ export const getAllUsers = async (req, res) => {
         const userBalance = await Coins.findOne({ userId: user._id });
 
         const properties = await Property.find({
-          owner_id: user._id,
+          owner_id: user._id
         });
 
         const coins = await Coins.findOne({ userId: user._id });
@@ -196,7 +193,7 @@ export const getAllUsers = async (req, res) => {
           ...user.toObject(),
           balance: userBalance ? userBalance.balance : 0,
           properties,
-          transactions: sortedCoins,
+          transactions: sortedCoins
         };
       })
     );
@@ -244,8 +241,8 @@ export const getUserDetails = async (req, res) => {
     res.json({
       user: {
         ...user.toObject(),
-        balance: userBalance ? userBalance.balance : 0, // Include balance in the user object
-      },
+        balance: userBalance ? userBalance.balance : 0 // Include balance in the user object
+      }
     });
   } catch (error) {
     res
@@ -260,7 +257,7 @@ const updateUserSchema = z.object({
   name: z.string().min(1).optional(),
   email: z.string().email().optional(),
   number: z.string().optional(),
-  balance: z.number().optional(),
+  balance: z.number().optional()
 });
 
 // Update User ----- Working
@@ -318,7 +315,7 @@ export const viewAllPropertiesdemo = async (req, res, next) => {
 
         return {
           ...property._doc, // Spread the property details
-          owner: ownerDetails, // Attach the owner's details
+          owner: ownerDetails // Attach the owner's details
         };
       })
     );
@@ -326,7 +323,7 @@ export const viewAllPropertiesdemo = async (req, res, next) => {
     res.status(200).json({
       code: 200,
       data: propertiesWithUserDetails,
-      message: "All properties fetched successfully",
+      message: "All properties fetched successfully"
     });
   } catch (error) {
     console.error("Error fetching all properties:", error);
@@ -373,8 +370,8 @@ async function generateExcel(properties) {
     {
       header: "Owner Profile Picture",
       key: "owner_profilepictures",
-      width: 45,
-    },
+      width: 45
+    }
   ];
 
   // Style the header row
@@ -382,7 +379,7 @@ async function generateExcel(properties) {
   worksheet.getRow(1).fill = {
     type: "pattern",
     pattern: "solid",
-    fgColor: { argb: "FFE0E0E0" },
+    fgColor: { argb: "FFE0E0E0" }
   };
 
   // Add data rows
@@ -420,7 +417,7 @@ async function generateExcel(properties) {
       owner_name: property.owner_name,
       owner_email: property.owner_email,
       owner_phone: property.owner_phone,
-      owner_profilepictures: property.owner_profilepictures,
+      owner_profilepictures: property.owner_profilepictures
     });
   });
 
@@ -432,7 +429,7 @@ async function generateExcel(properties) {
   // Auto-filter for all columns
   worksheet.autoFilter = {
     from: { row: 1, column: 1 },
-    to: { row: 1, column: worksheet.columns.length },
+    to: { row: 1, column: worksheet.columns.length }
   };
 
   return await workbook.xlsx.writeBuffer();
@@ -458,7 +455,7 @@ export const viewAllProperties = async (req, res, next) => {
 
           exactQuery.createdAt = {
             $gte: start, // Greater than or equal to start date
-            $lte: end, // Less than or equal to end date
+            $lte: end // Less than or equal to end date
           };
         }
       }
@@ -474,7 +471,7 @@ export const viewAllProperties = async (req, res, next) => {
           "residential",
           "Residential",
           "Commercial",
-          "commercial",
+          "commercial"
         ],
         property_subtype: [
           "office",
@@ -485,11 +482,11 @@ export const viewAllProperties = async (req, res, next) => {
           "independent house",
           "villa",
           "independent floor",
-          "pg",
+          "pg"
         ],
         property_posted_by: ["owner", "agent"],
         furnish_type: ["Fully Furnished", "Semi Furnished", "Un-Furnished"],
-        preferred_tenant: ["any", "family", "bachelor"],
+        preferred_tenant: ["any", "family", "bachelor"]
       };
 
       // Validate and apply enum filters
@@ -522,7 +519,7 @@ export const viewAllProperties = async (req, res, next) => {
           owner_name: ownerDetails?.name, // Attach the owner's details
           owner_phone: ownerDetails?.number,
           owner_email: ownerDetails?.email,
-          owner_profilepictures: ownerDetails?.profilePicture,
+          owner_profilepictures: ownerDetails?.profilePicture
         };
       })
     );
@@ -546,7 +543,7 @@ export const viewAllProperties = async (req, res, next) => {
     return res.status(200).json({
       code: 200,
       data: propertiesWithUserDetails,
-      message: "Properties fetched successfully",
+      message: "Properties fetched successfully"
     });
   } catch (error) {
     console.error("Error fetching properties:", error);
@@ -572,7 +569,7 @@ export const viewPropertyDetails = async (req, res, next) => {
       owner_name: owner.name,
       owner_phone: owner.number,
       owner_email: owner.email,
-      owner_profilepictures: owner.profilePicture,
+      owner_profilepictures: owner.profilePicture
     };
     if (!property) {
       return next(errorHandler(404, res, "Property not found"));
@@ -581,7 +578,7 @@ export const viewPropertyDetails = async (req, res, next) => {
     res.status(200).json({
       code: 200,
       data: propertyWithOwnerDetails,
-      message: "Property details fetched successfully",
+      message: "Property details fetched successfully"
     });
   } catch (error) {
     console.error("Error fetching property details:", error);
@@ -609,7 +606,7 @@ export const updateProperty = async (req, res, next) => {
 
     res.status(200).json({
       data: property,
-      message: "Property updated successfully",
+      message: "Property updated successfully"
     });
   } catch (error) {
     console.error("Error updating property:", error);
@@ -635,7 +632,7 @@ export const adminUpdateBalance = async (req, res, next) => {
     res.status(200).json({
       code: 200,
       data: { balance: coins.balance },
-      message: "Coins updated successfully.",
+      message: "Coins updated successfully."
     });
   } catch (error) {
     console.error("Error updating balance:", error);
@@ -670,7 +667,7 @@ export const adminGetTransactions = async (req, res, next) => {
       return res.status(404).json({
         code: 404,
         data: {},
-        message: "Coins not found for this user.",
+        message: "Coins not found for this user."
       });
     }
 
@@ -687,14 +684,14 @@ export const adminGetTransactions = async (req, res, next) => {
       return res.status(404).json({
         code: 404,
         data: {},
-        message: "No transactions found for this user in the specified period.",
+        message: "No transactions found for this user in the specified period."
       });
     }
 
     res.status(200).json({
       code: 200,
       data: { transactions },
-      message: "Transactions fetched successfully.",
+      message: "Transactions fetched successfully."
     });
   } catch (error) {
     console.error("Error fetching transactions:", error);
@@ -712,7 +709,7 @@ export const adminDashboard = async (req, res, next) => {
     if (fromDate && toDate) {
       dateFilter.createdAt = {
         $gte: new Date(fromDate),
-        $lte: new Date(toDate),
+        $lte: new Date(toDate)
       };
     }
 
@@ -723,7 +720,7 @@ export const adminDashboard = async (req, res, next) => {
     // Transaction aggregation with date filter
     const totalTransactions = await Coins.aggregate([
       {
-        $unwind: "$transactions",
+        $unwind: "$transactions"
       },
       ...(fromDate && toDate
         ? [
@@ -731,10 +728,10 @@ export const adminDashboard = async (req, res, next) => {
               $match: {
                 "transactions.timestamp": {
                   $gte: new Date(fromDate),
-                  $lte: new Date(toDate),
-                },
-              },
-            },
+                  $lte: new Date(toDate)
+                }
+              }
+            }
           ]
         : []),
       {
@@ -746,21 +743,21 @@ export const adminDashboard = async (req, res, next) => {
               $cond: [
                 { $eq: ["$transactions.type", "credit"] },
                 "$transactions.amount",
-                0,
-              ],
-            },
+                0
+              ]
+            }
           },
           totalDebitTransactions: {
             $sum: {
               $cond: [
                 { $eq: ["$transactions.type", "debit"] },
                 "$transactions.amount",
-                0,
-              ],
-            },
-          },
-        },
-      },
+                0
+              ]
+            }
+          }
+        }
+      }
     ]);
 
     // Properties by type with date filter
@@ -771,17 +768,17 @@ export const adminDashboard = async (req, res, next) => {
               $match: {
                 createdAt: {
                   $gte: new Date(fromDate),
-                  $lte: new Date(toDate),
-                },
-              },
-            },
+                  $lte: new Date(toDate)
+                }
+              }
+            }
           ]
         : []),
       {
         $group: {
           _id: { $toLower: "$property_type" },
-          count: { $sum: 1 },
-        },
+          count: { $sum: 1 }
+        }
       },
       {
         $project: {
@@ -791,11 +788,11 @@ export const adminDashboard = async (req, res, next) => {
           percentage: {
             $multiply: [
               { $divide: ["$count", { $literal: totalProperties }] },
-              100,
-            ],
-          },
-        },
-      },
+              100
+            ]
+          }
+        }
+      }
     ]);
 
     // Daily Aggregation with date filter
@@ -807,10 +804,10 @@ export const adminDashboard = async (req, res, next) => {
               $match: {
                 "transactions.timestamp": {
                   $gte: new Date(fromDate),
-                  $lte: new Date(toDate),
-                },
-              },
-            },
+                  $lte: new Date(toDate)
+                }
+              }
+            }
           ]
         : []),
       {
@@ -818,12 +815,12 @@ export const adminDashboard = async (req, res, next) => {
           _id: {
             $dateToString: {
               format: "%Y-%m-%d",
-              date: "$transactions.timestamp",
-            },
+              date: "$transactions.timestamp"
+            }
           },
           total_amount: { $sum: "$transactions.amount" },
-          total_transactions: { $sum: 1 },
-        },
+          total_transactions: { $sum: 1 }
+        }
       },
       { $sort: { _id: 1 } },
       {
@@ -831,9 +828,9 @@ export const adminDashboard = async (req, res, next) => {
           _id: 0,
           date: "$_id",
           total_amount: 1,
-          total_transactions: 1,
-        },
-      },
+          total_transactions: 1
+        }
+      }
     ]);
 
     // Weekly Aggregation with date filter
@@ -845,10 +842,10 @@ export const adminDashboard = async (req, res, next) => {
               $match: {
                 "transactions.timestamp": {
                   $gte: new Date(fromDate),
-                  $lte: new Date(toDate),
-                },
-              },
-            },
+                  $lte: new Date(toDate)
+                }
+              }
+            }
           ]
         : []),
       {
@@ -857,12 +854,12 @@ export const adminDashboard = async (req, res, next) => {
             $dateToString: {
               format: "%Y-%U",
               date: "$transactions.timestamp",
-              timezone: "UTC",
-            },
+              timezone: "UTC"
+            }
           },
           total_amount: { $sum: "$transactions.amount" },
-          total_transactions: { $sum: 1 },
-        },
+          total_transactions: { $sum: 1 }
+        }
       },
       { $sort: { _id: 1 } },
       {
@@ -870,9 +867,9 @@ export const adminDashboard = async (req, res, next) => {
           _id: 0,
           week: "$_id",
           total_amount: 1,
-          total_transactions: 1,
-        },
-      },
+          total_transactions: 1
+        }
+      }
     ]);
 
     // Monthly Aggregation with date filter
@@ -884,20 +881,20 @@ export const adminDashboard = async (req, res, next) => {
               $match: {
                 "transactions.timestamp": {
                   $gte: new Date(fromDate),
-                  $lte: new Date(toDate),
-                },
-              },
-            },
+                  $lte: new Date(toDate)
+                }
+              }
+            }
           ]
         : []),
       {
         $group: {
           _id: {
-            $dateToString: { format: "%Y-%m", date: "$transactions.timestamp" },
+            $dateToString: { format: "%Y-%m", date: "$transactions.timestamp" }
           },
           total_amount: { $sum: "$transactions.amount" },
-          total_transactions: { $sum: 1 },
-        },
+          total_transactions: { $sum: 1 }
+        }
       },
       { $sort: { _id: 1 } },
       {
@@ -905,15 +902,15 @@ export const adminDashboard = async (req, res, next) => {
           _id: 0,
           month: "$_id",
           total_amount: 1,
-          total_transactions: 1,
-        },
-      },
+          total_transactions: 1
+        }
+      }
     ]);
 
     const propertyPostAndOwnerDetailsCost = await Prices.findOne();
     const propertyContactAndPostCost = {
       propertyPostCost: propertyPostAndOwnerDetailsCost.propertyPostCost,
-      ownerDetailsCost: propertyPostAndOwnerDetailsCost.propertyContactCost,
+      ownerDetailsCost: propertyPostAndOwnerDetailsCost.propertyContactCost
     };
 
     // Total Revenue with date filter
@@ -925,10 +922,10 @@ export const adminDashboard = async (req, res, next) => {
               $match: {
                 "transactions.timestamp": {
                   $gte: new Date(fromDate),
-                  $lte: new Date(toDate),
-                },
-              },
-            },
+                  $lte: new Date(toDate)
+                }
+              }
+            }
           ]
         : []),
       {
@@ -939,12 +936,12 @@ export const adminDashboard = async (req, res, next) => {
               $cond: [
                 { $eq: ["$transactions.type", "debit"] },
                 "$transactions.amount",
-                0,
-              ],
-            },
-          },
-        },
-      },
+                0
+              ]
+            }
+          }
+        }
+      }
     ]);
 
     // Coins added by users with date filter
@@ -957,18 +954,18 @@ export const adminDashboard = async (req, res, next) => {
             ? {
                 "transactions.timestamp": {
                   $gte: new Date(fromDate),
-                  $lte: new Date(toDate),
-                },
+                  $lte: new Date(toDate)
+                }
               }
-            : {}),
-        },
+            : {})
+        }
       },
       {
         $group: {
           _id: null,
-          totalCoinsAdded: { $sum: "$transactions.amount" },
-        },
-      },
+          totalCoinsAdded: { $sum: "$transactions.amount" }
+        }
+      }
     ]);
 
     // Coins redeemed in contact owner with date filter
@@ -982,18 +979,18 @@ export const adminDashboard = async (req, res, next) => {
             ? {
                 "transactions.timestamp": {
                   $gte: new Date(fromDate),
-                  $lte: new Date(toDate),
-                },
+                  $lte: new Date(toDate)
+                }
               }
-            : {}),
-        },
+            : {})
+        }
       },
       {
         $group: {
           _id: null,
-          totalCoinsRedeemed: { $sum: "$transactions.amount" },
-        },
-      },
+          totalCoinsRedeemed: { $sum: "$transactions.amount" }
+        }
+      }
     ]);
 
     // Coins redeemed in property post with date filter
@@ -1007,18 +1004,18 @@ export const adminDashboard = async (req, res, next) => {
             ? {
                 "transactions.timestamp": {
                   $gte: new Date(fromDate),
-                  $lte: new Date(toDate),
-                },
+                  $lte: new Date(toDate)
+                }
               }
-            : {}),
-        },
+            : {})
+        }
       },
       {
         $group: {
           _id: null,
-          totalCoinsRedeemed: { $sum: "$transactions.amount" },
-        },
-      },
+          totalCoinsRedeemed: { $sum: "$transactions.amount" }
+        }
+      }
     ]);
 
     const totalCoinsAdded = totalCoinsAddedByUsers[0]?.totalCoinsAdded || 0;
@@ -1032,7 +1029,7 @@ export const adminDashboard = async (req, res, next) => {
       totalCoinsAdded,
       totalCoinsRedeemedInContact,
       totalCoinsRedeemedInPost,
-      totalRevenueAmount,
+      totalRevenueAmount
     };
 
     res.status(200).json({
@@ -1048,10 +1045,10 @@ export const adminDashboard = async (req, res, next) => {
         propertyContactAndPostCost,
         dateRange: {
           from: fromDate || null,
-          to: toDate || null,
-        },
+          to: toDate || null
+        }
       },
-      message: "Dashboard data fetched successfully.",
+      message: "Dashboard data fetched successfully."
     });
   } catch (error) {
     console.error("Error fetching dashboard data:", error);
@@ -1091,8 +1088,8 @@ export const updatePropertyAndContractCharges = async (req, res, next) => {
       message: "Property and Contact charges updated successfully",
       updatedCharges: {
         propertyPostCost: updatedValues.propertyPostCost,
-        propertyContactCost: updatedValues.propertyContactCost,
-      },
+        propertyContactCost: updatedValues.propertyContactCost
+      }
     });
   } catch (error) {
     console.error("Error fetching dashboard data:", error);
@@ -1189,15 +1186,15 @@ async function generateExcelTransaction(transaction) {
     {
       header: "Profile Picture",
       key: "profilepictures",
-      width: 45,
-    },
+      width: 45
+    }
   ];
   // Style the header row
   worksheet.getRow(1).font = { bold: true };
   worksheet.getRow(1).fill = {
     type: "pattern",
     pattern: "solid",
-    fgColor: { argb: "FFE0E0E0" },
+    fgColor: { argb: "FFE0E0E0" }
   };
 
   // add data rows
@@ -1212,7 +1209,7 @@ async function generateExcelTransaction(transaction) {
       name: transaction.name,
       email: transaction.email,
       phone: transaction.phone,
-      profilepictures: transaction.profilepictures,
+      profilepictures: transaction.profilepictures
     });
   });
 
@@ -1237,7 +1234,7 @@ export const viewAllTransactions = async (req, res, next) => {
 
           exactQuery.createdAt = {
             $gte: start, // Greater than or equal to start date
-            $lte: end, // Less than or equal to end date
+            $lte: end // Less than or equal to end date
           };
         }
       }
@@ -1251,7 +1248,7 @@ export const viewAllTransactions = async (req, res, next) => {
     }
 
     const enumFields = {
-      status: ["processing", "success", "failed"],
+      status: ["processing", "success", "failed"]
     };
 
     Object.entries(enumFields).forEach(([field, validValues]) => {
@@ -1282,7 +1279,7 @@ export const viewAllTransactions = async (req, res, next) => {
           name: ownerDetails?.name, // Attach the owner's details
           phone: ownerDetails?.number,
           email: ownerDetails?.email,
-          profilepictures: ownerDetails?.profilePicture,
+          profilepictures: ownerDetails?.profilePicture
         };
       })
     );
@@ -1298,15 +1295,15 @@ export const viewAllTransactions = async (req, res, next) => {
         { $unwind: "$transactions" },
         {
           $match: {
-            "transactions.transaction_id": filters.transactionId,
-          },
+            "transactions.transaction_id": filters.transactionId
+          }
         },
         {
           $project: {
             userId: 1,
-            transaction: "$transactions",
-          },
-        },
+            transaction: "$transactions"
+          }
+        }
       ];
 
       const transactionsFromCoinsModel = await Coins.aggregate(pipeline);
@@ -1321,7 +1318,7 @@ export const viewAllTransactions = async (req, res, next) => {
       const transactionsWithUserDetails = transactionsFromCoinsModel.map(
         (transaction) => ({
           ...transaction,
-          user,
+          user
         })
       );
 
@@ -1339,7 +1336,7 @@ export const viewAllTransactions = async (req, res, next) => {
 
         coinsQuery["transactions.timestamp"] = {
           $gte: start,
-          $lte: end,
+          $lte: end
         };
       }
     }
@@ -1350,9 +1347,9 @@ export const viewAllTransactions = async (req, res, next) => {
       {
         $project: {
           userId: 1,
-          transaction: "$transactions",
-        },
-      },
+          transaction: "$transactions"
+        }
+      }
     ]);
 
     const coinTransactionWithUserDetails = await Promise.all(
@@ -1372,7 +1369,7 @@ export const viewAllTransactions = async (req, res, next) => {
           name: ownerDetails?.name, // Attach the owner's details
           phone: ownerDetails?.number,
           email: ownerDetails?.email,
-          profilepictures: ownerDetails?.profilePicture,
+          profilepictures: ownerDetails?.profilePicture
         };
       })
     );
@@ -1396,7 +1393,7 @@ export const viewAllTransactions = async (req, res, next) => {
       code: 200,
       razorpayTransactionWithUserDetails,
       coinTransactionWithUserDetails,
-      message: "Properties fetched successfully",
+      message: "Properties fetched successfully"
     });
   } catch (error) {
     console.error("Error fetching properties: ", error);
@@ -1412,14 +1409,14 @@ export const searchProperties = async (req, res) => {
       page = 1,
       limit = 10,
       sortBy = "createdAt",
-      sortOrder = "desc",
+      sortOrder = "desc"
     } = req.query;
 
     // Validate keyword length to prevent overly broad searches
     if (keyword.length < 2) {
       return res.status(400).json({
         success: false,
-        message: "Keyword must be at least 2 characters long",
+        message: "Keyword must be at least 2 characters long"
       });
     }
 
@@ -1428,8 +1425,8 @@ export const searchProperties = async (req, res) => {
       $or: [
         { title: { $regex: keyword, $options: "i" } },
         { description: { $regex: keyword, $options: "i" } },
-        { address: { $regex: keyword, $options: "i" } },
-      ],
+        { address: { $regex: keyword, $options: "i" } }
+      ]
     };
 
     // Validate sort parameters
@@ -1452,7 +1449,7 @@ export const searchProperties = async (req, res) => {
         .skip(skip)
         .limit(itemsPerPage)
         .lean(), // Convert to plain JavaScript object for better performance
-      Property.countDocuments(searchQuery),
+      Property.countDocuments(searchQuery)
     ]);
 
     // Calculate total pages
@@ -1470,15 +1467,15 @@ export const searchProperties = async (req, res) => {
         // Highlight matching keywords in results
         highlightedTitle: highlightKeyword(property.title, keyword),
         highlightedDescription: highlightKeyword(property.description, keyword),
-        highlightedAddress: highlightKeyword(property.address, keyword),
-      })),
+        highlightedAddress: highlightKeyword(property.address, keyword)
+      }))
     });
   } catch (error) {
     console.error("Search Properties Error:", error);
     res.status(500).json({
       success: false,
       message: "Error searching properties",
-      error: error.message,
+      error: error.message
     });
   }
 };
@@ -1504,7 +1501,7 @@ export const advancedSearch = async (req, res) => {
       keyword = "",
       exactMatch = false,
       page = 1,
-      limit = 10,
+      limit = 10
     } = req.query;
 
     // Construct search query based on exact match or partial match
@@ -1515,8 +1512,8 @@ export const advancedSearch = async (req, res) => {
         $or: [
           { title: keyword },
           { description: keyword },
-          { address: keyword },
-        ],
+          { address: keyword }
+        ]
       };
     } else {
       // Partial match with word boundary for more precise matching
@@ -1524,8 +1521,8 @@ export const advancedSearch = async (req, res) => {
         $or: [
           { title: { $regex: `\\b${keyword}\\b`, $options: "i" } },
           { description: { $regex: `\\b${keyword}\\b`, $options: "i" } },
-          { address: { $regex: `\\b${keyword}\\b`, $options: "i" } },
-        ],
+          { address: { $regex: `\\b${keyword}\\b`, $options: "i" } }
+        ]
       };
     }
 
@@ -1537,7 +1534,7 @@ export const advancedSearch = async (req, res) => {
     // Perform search
     const [properties, total] = await Promise.all([
       Property.find(searchQuery).skip(skip).limit(itemsPerPage),
-      Property.countDocuments(searchQuery),
+      Property.countDocuments(searchQuery)
     ]);
 
     // Calculate total pages
@@ -1549,14 +1546,34 @@ export const advancedSearch = async (req, res) => {
       totalPages,
       totalProperties: total,
       propertiesPerPage: itemsPerPage,
-      properties,
+      properties
     });
   } catch (error) {
     console.error("Advanced Search Error:", error);
     res.status(500).json({
       success: false,
       message: "Error in advanced search",
-      error: error.message,
+      error: error.message
     });
+  }
+};
+
+export const deleteProperty = async (req, res, next) => {
+  const { propertyId } = req.params;
+
+  try {
+    const property = await Property.findByIdAndDelete(propertyId);
+
+    if (!property) {
+      return next(errorHandler(404, res, "Property not found"));
+    }
+
+    res.status(200).json({
+      code: 200,
+      message: "Property deleted successfully"
+    });
+  } catch (error) {
+    console.error("Error deleting property:", error);
+    next(errorHandler(500, res, "Something went wrong"));
   }
 };
