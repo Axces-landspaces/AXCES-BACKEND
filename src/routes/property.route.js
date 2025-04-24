@@ -7,7 +7,7 @@ import {
   listProperties,
   contactOwner,
   addToWishlist,
-  viewWishlist,
+  viewWishlist
 } from "../controllers/property.controller.js";
 import { authenticateToken } from "../middlewares/verifyUser.js";
 import { upload } from "../middlewares/multer.middleware.js";
@@ -19,18 +19,32 @@ router.post(
   upload.fields([
     {
       name: "images",
-      maxCount: 5,
+      maxCount: 5
     },
     {
       name: "video",
-      maxCount: 5,
-    },
+      maxCount: 5
+    }
   ]),
   authenticateToken,
   postProperty
 );
 
-router.put("/property/edit", authenticateToken, editProperty);
+router.put(
+  "/property/edit",
+  upload.fields([
+    {
+      name: "images",
+      maxCount: 5
+    },
+    {
+      name: "video",
+      maxCount: 5
+    }
+  ]),
+  authenticateToken,
+  editProperty
+);
 router.delete("/property/delete", authenticateToken, deleteProperty);
 router.post("/property/list", authenticateToken, listProperties);
 

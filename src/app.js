@@ -17,13 +17,14 @@ const corsOptions = {
   origin: [
     "https://axces.in",
     "http://localhost:5000",
+    "http://localhost:4000",
     "http://localhost:5173",
-    "https://free-nextjs-admin-dashboard-main-three.vercel.app",
+    "https://free-nextjs-admin-dashboard-main-three.vercel.app"
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
-  optionsSuccessStatus: 204,
+  optionsSuccessStatus: 204
 };
 
 app.use(cors({}));
@@ -35,7 +36,7 @@ connectDB();
 
 app.get("/", (req, res) => {
   return res.json({
-    message: "Welcome to the axces API's",
+    message: "Welcome to the axces API's"
   });
 });
 
@@ -51,7 +52,7 @@ app.use((err, req, res, next) => {
   res.status(code).json({
     code,
     data: {},
-    message,
+    message
   });
 });
 

@@ -10,7 +10,6 @@ import { generateAndUploadInvoice } from "../utils/invoiceUpload.js";
 
 export const postProperty = async (req, res, next) => {
   const owner_id = req.user.id;
-  console.log("owner_id: ", owner_id, "typeof: ", typeof owner_id);
 
   const {
     listing_type,
@@ -37,7 +36,7 @@ export const postProperty = async (req, res, next) => {
     preferred_tenant,
     localities,
     landmark,
-    facilities,
+    facilities
   } = req?.body;
 
   let location = JSON.parse(req.body.location);
@@ -45,7 +44,7 @@ export const postProperty = async (req, res, next) => {
   try {
     let property = await Property.findOne({
       "location.latitude": location.latitude,
-      "location.longitude": location.longitude,
+      "location.longitude": location.longitude
     });
 
     if (property) {
@@ -122,9 +121,21 @@ export const postProperty = async (req, res, next) => {
       }
     }
 
-    const imageLocalPath = req.files.images[0].path;
-    console.log(req.files);
-    const imageResponse = await uploadOnCloudinary(imageLocalPath);
+    // Upload multiple images to Cloudinary
+    const imageUrls = [];
+    const uploadPromises = req.files.images.map(async (file) => {
+      const imageLocalPath = file.path;
+      const imageResponse = await uploadOnCloudinary(imageLocalPath);
+      if (imageResponse && imageResponse.url) {
+        imageUrls.push(imageResponse.url);
+      }
+    });
+
+    await Promise.all(uploadPromises);
+
+    if (imageUrls.length === 0) {
+      return next(errorHandler(400, res, "Failed to upload images"));
+    }
 
     property = new Property({
       listing_type,
@@ -154,7 +165,7 @@ export const postProperty = async (req, res, next) => {
       localities,
       landmark,
       facilities,
-      images: imageResponse.url,
+      images: imageUrls
     });
 
     // Fetch the default property post cost and user's coin balance
@@ -194,15 +205,15 @@ export const postProperty = async (req, res, next) => {
       taxes: {
         taxSplit: [
           { taxPerc: 9, taxAmount: gstAmount / 2 },
-          { taxPerc: 9, taxAmount: gstAmount / 2 },
-        ],
+          { taxPerc: 9, taxAmount: gstAmount / 2 }
+        ]
       },
       netAmount: propertyPostCharges,
       userInfo: {
         name: user.name,
         email: user.email,
-        number: user.number,
-      },
+        number: user.number
+      }
     };
 
     const invoiceUrl = await generateAndUploadInvoice(invoiceData);
@@ -215,7 +226,7 @@ export const postProperty = async (req, res, next) => {
       timestamp: new Date(),
       type: "debit",
       download_invoice_url: invoiceUrl.url,
-      balanceAfterDeduction: newBalance,
+      balanceAfterDeduction: newBalance
     });
 
     await userCoins.save();
@@ -225,7 +236,7 @@ export const postProperty = async (req, res, next) => {
       code: 201,
       data: property,
       download_invoice_url: invoiceUrl.url,
-      message: "Property posted successfully",
+      message: "Property posted successfully"
     });
   } catch (error) {
     console.error("Error posting property:", error);
@@ -234,10 +245,9 @@ export const postProperty = async (req, res, next) => {
 };
 
 export const editProperty = async (req, res, next) => {
-  const { propertyId, updatedPropertyDetails } = req.body;
-
+  const propertyId = req.body.propertyId;
   const userId = req.user.id;
-  console.log("userId: ", userId);
+  console.log("propertyId: ", req.body);
 
   if (!mongoose.Types.ObjectId.isValid(propertyId)) {
     return next(errorHandler(400, res, "Invalid property ID"));
@@ -245,7 +255,7 @@ export const editProperty = async (req, res, next) => {
 
   const property = await Property.findOne({
     _id: propertyId,
-    owner_id: userId,
+    owner_id: userId
   });
 
   if (!property) {
@@ -255,19 +265,93 @@ export const editProperty = async (req, res, next) => {
   }
 
   try {
-    const property = await Property.findOne({ _id: propertyId });
+    const {
+      listing_type,
+      property_type,
+      property_subtype,
+      purpose,
+      title,
+      description,
+      address,
+      property_posted_by,
+      pincode,
+      building_name,
+      bedrooms,
+      bathrooms,
+      area_sqft,
+      property_age,
+      facing,
+      floor_number,
+      total_floors,
+      furnish_type,
+      available_from,
+      monthly_rent,
+      security_deposit,
+      preferred_tenant,
+      localities,
+      landmark,
+      facilities
+    } = req?.body;
 
-    if (!property) {
-      return next(errorHandler(404, res, "Property not found"));
+    // Parse location if it's provided
+    let location;
+    if (req.body.location) {
+      location = JSON.parse(req.body.location);
     }
 
-    Object.assign(property, updatedPropertyDetails);
+    // Update property fields if provided
+    if (listing_type) property.listing_type = listing_type;
+    if (property_type) property.property_type = property_type;
+    if (property_subtype) property.property_subtype = property_subtype;
+    if (property_posted_by) property.property_posted_by = property_posted_by;
+    if (purpose) property.purpose = purpose;
+    if (title) property.title = title;
+    if (description) property.description = description;
+    if (address) property.address = address;
+    if (pincode) property.pincode = pincode;
+    if (location) property.location = location;
+    if (building_name) property.building_name = building_name;
+    if (bedrooms) property.bedrooms = bedrooms;
+    if (bathrooms) property.bathrooms = bathrooms;
+    if (area_sqft) property.area_sqft = area_sqft;
+    if (property_age) property.property_age = property_age;
+    if (facing) property.facing = facing;
+    if (floor_number) property.floor_number = floor_number;
+    if (total_floors) property.total_floors = total_floors;
+    if (furnish_type) property.furnish_type = furnish_type;
+    if (available_from) property.available_from = available_from;
+    if (monthly_rent) property.monthly_rent = monthly_rent;
+    if (security_deposit) property.security_deposit = security_deposit;
+    if (preferred_tenant) property.preferred_tenant = preferred_tenant;
+    if (localities) property.localities = localities;
+    if (landmark) property.landmark = landmark;
+    if (facilities) property.facilities = facilities;
+
+    // Handle image uploads if provided
+    if (req.files && req.files.images && req.files.images.length > 0) {
+      const imageUrls = [];
+      const uploadPromises = req.files.images.map(async (file) => {
+        const imageLocalPath = file.path;
+        const imageResponse = await uploadOnCloudinary(imageLocalPath);
+        if (imageResponse && imageResponse.url) {
+          imageUrls.push(imageResponse.url);
+        }
+      });
+
+      await Promise.all(uploadPromises);
+
+      if (imageUrls.length > 0) {
+        // Append new images to existing ones instead of replacing
+        property.images = [...property.images, ...imageUrls];
+      }
+    }
+
     await property.save();
 
-    res.status(201).json({
-      code: 201,
+    res.status(200).json({
+      code: 200,
       data: { updatedProperty: property },
-      message: "Property updated successfully",
+      message: "Property updated successfully"
     });
   } catch (error) {
     console.error("Error updating property:", error);
@@ -286,7 +370,7 @@ export const deleteProperty = async (req, res, next) => {
 
   const property = await Property.findOne({
     _id: propertyId,
-    owner_id: userId,
+    owner_id: userId
   });
   console.log("property: ", property);
 
@@ -343,7 +427,7 @@ export const getPropertyDetails = async (req, res, next) => {
     res.status(200).json({
       code: 200,
       data: property,
-      message: "Property details fetched successfully",
+      message: "Property details fetched successfully"
     });
   } catch (error) {
     console.error("Error fetching property details:", error);
@@ -364,7 +448,7 @@ export const listProperties = async (req, res, next) => {
         return res.status(404).json({
           code: 404,
           data: {},
-          message: "No properties found for the given owner",
+          message: "No properties found for the given owner"
         });
       }
 
@@ -374,7 +458,7 @@ export const listProperties = async (req, res, next) => {
         return res.status(404).json({
           code: 404,
           data: {},
-          message: "Owner not found",
+          message: "Owner not found"
         });
       }
 
@@ -382,13 +466,13 @@ export const listProperties = async (req, res, next) => {
       const ownerPropertiesWithDetails = ownerProperties.map((property) => ({
         ...property.toObject(),
         owner_name: owner.name,
-        owner_phone: owner.number,
+        owner_phone: owner.number
       }));
 
       return res.status(200).json({
         code: 200,
         data: ownerPropertiesWithDetails,
-        message: "Owner's properties fetched successfully",
+        message: "Owner's properties fetched successfully"
       });
     } catch (error) {
       console.error("Error fetching owner's properties:", error);
@@ -406,7 +490,7 @@ export const listProperties = async (req, res, next) => {
       return res.status(400).json({
         code: 400,
         data: {},
-        message: "User latitude and longitude are required",
+        message: "User latitude and longitude are required"
       });
     }
 
@@ -416,31 +500,31 @@ export const listProperties = async (req, res, next) => {
       if (filters.userId) {
         exactQuery.userId = {
           $regex: `\\b${filters.userId}\\b`,
-          $options: "i",
+          $options: "i"
         };
       }
       if (filters.listing_type) {
         exactQuery.listing_type = {
           $regex: `\\b${filters.listing_type}\\b`,
-          $options: "i",
+          $options: "i"
         };
       }
       if (filters.property_posted_by) {
         exactQuery.property_posted_by = {
           $regex: `\\b${filters.property_posted_by}\\b`,
-          $options: "i",
+          $options: "i"
         };
       }
       if (filters.property_type) {
         exactQuery.property_type = {
           $regex: `\\b${filters.property_type}\\b`,
-          $options: "i",
+          $options: "i"
         };
       }
       if (filters.purpose) {
         exactQuery.purpose = {
           $regex: `\\b${filters.purpose}\\b`,
-          $options: "i",
+          $options: "i"
         };
       }
       if (filters.title) {
@@ -449,26 +533,26 @@ export const listProperties = async (req, res, next) => {
       if (filters.description) {
         exactQuery.description = {
           $regex: `\\b${filters.description}\\b`,
-          $options: "i",
+          $options: "i"
         };
       }
       if (filters.address) {
         exactQuery.address = {
           $regex: `\\b${filters.address}\\b`,
-          $options: "i",
+          $options: "i"
         };
       }
       if (filters.pincode) {
         exactQuery.pincode = {
           $regex: `\\b${filters.pincode}\\b`,
-          $options: "i",
+          $options: "i"
         };
       }
 
       if (filters.building_name) {
         exactQuery.building_name = {
           $regex: `\\b${filters.building_name}\\b`,
-          $options: "i",
+          $options: "i"
         };
       }
       if (filters.bedrooms) {
@@ -486,7 +570,7 @@ export const listProperties = async (req, res, next) => {
       if (filters.facing) {
         exactQuery.facing = {
           $regex: `\\b${filters.facing}\\b`,
-          $options: "i",
+          $options: "i"
         };
       }
       if (filters.floor_number) {
@@ -498,7 +582,7 @@ export const listProperties = async (req, res, next) => {
       if (filters.furnish_type) {
         exactQuery.furnish_type = {
           $regex: `\\b${filters.furnish_type}\\b`,
-          $options: "i",
+          $options: "i"
         };
       }
       if (filters.available_from) {
@@ -510,7 +594,7 @@ export const listProperties = async (req, res, next) => {
         if (filters.monthly_rent[0] && filters.monthly_rent[1]) {
           exactQuery.monthly_rent = {
             $gte: filters.monthly_rent[0], // Minimum value
-            $lte: filters.monthly_rent[1], // Maximum value
+            $lte: filters.monthly_rent[1] // Maximum value
           };
         }
       }
@@ -521,19 +605,19 @@ export const listProperties = async (req, res, next) => {
       if (filters.preferred_tenant) {
         exactQuery.preferred_tenant = {
           $regex: `\\b${filters.preferred_tenant}\\b`,
-          $options: "i",
+          $options: "i"
         };
       }
       if (filters.localities && Array.isArray(filters.localities)) {
         exactQuery.localities = {
           $regex: `\\b${filters.localities}\\b`,
-          $options: "i",
+          $options: "i"
         };
       }
       if (filters.landmark) {
         exactQuery.landmark = {
           $regex: `\\b${filters.landmark}\\b`,
-          $options: "i",
+          $options: "i"
         };
       }
       if (filters.facilities && Array.isArray(filters.facilities)) {
@@ -547,7 +631,7 @@ export const listProperties = async (req, res, next) => {
       return res.status(200).json({
         code: 200,
         data: [],
-        message: "No properties match the given filters",
+        message: "No properties match the given filters"
       });
     }
 
@@ -576,7 +660,7 @@ export const listProperties = async (req, res, next) => {
             { latitude: userLatitude, longitude: userLongitude },
             {
               latitude: property.location.latitude,
-              longitude: property.location.longitude,
+              longitude: property.location.longitude
             }
           );
           property.distance = distance / 1000; // distance in kilometers
@@ -608,7 +692,7 @@ export const listProperties = async (req, res, next) => {
     res.status(200).json({
       code: 200,
       data: exactPropertiesWithDistance.slice(0, 10), // Limit to 10 properties
-      message: "Properties fetched successfully",
+      message: "Properties fetched successfully"
     });
   } catch (error) {
     console.error("Error fetching properties:", error);
@@ -661,15 +745,15 @@ export const contactOwner = async (req, res, next) => {
       taxes: {
         taxSplit: [
           { taxPerc: 9, taxAmount: gstAmount / 2 },
-          { taxPerc: 9, taxAmount: gstAmount / 2 },
-        ],
+          { taxPerc: 9, taxAmount: gstAmount / 2 }
+        ]
       },
       netAmount: ownerDetailsCharges,
       userInfo: {
         name: user.name,
         email: user.email,
-        number: user.number,
-      },
+        number: user.number
+      }
     };
 
     const invoiceUrl = await generateAndUploadInvoice(invoiceData);
@@ -681,7 +765,7 @@ export const contactOwner = async (req, res, next) => {
       amount: ownerDetailsCharges,
       description: "owner_details",
       timestamp: new Date(),
-      type: "debit",
+      type: "debit"
     });
 
     userCoins.balance -= ownerDetailsCharges;
@@ -700,11 +784,11 @@ export const contactOwner = async (req, res, next) => {
         owner_details: {
           owner_name: owner.name,
           contact_phone: owner.number,
-          contact_email: owner.email,
-        },
+          contact_email: owner.email
+        }
       },
       download_invoice_url: invoiceUrl.url,
-      message: "Contact details retrieved successfully",
+      message: "Contact details retrieved successfully"
     });
   } catch (error) {
     console.error("Error retrieving contact details:", error);
@@ -762,7 +846,7 @@ export const addToWishlist = async (req, res, next) => {
       message:
         action === 1
           ? "Property added to wishlist"
-          : "Property removed from wishlist",
+          : "Property removed from wishlist"
     });
   } catch (error) {
     console.error("Error updating wishlist:", error);
@@ -784,7 +868,7 @@ export const viewWishlist = async (req, res, next) => {
 
     const wishlistWithFlag = user.wishlist.map((property) => ({
       ...property.toObject(),
-      isInWishlist: true,
+      isInWishlist: true
     }));
 
     res.status(200).json({ status: "success", data: wishlistWithFlag });
